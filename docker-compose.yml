@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   nieve_auto:
-    image: eriklinares/gee-nieve-sequia-auto:1.0.0
+    image: ericklinares/gee-nieve-sequia-auto:1.0.0
     deploy:
       replicas: 1 
       resources: 
@@ -12,7 +12,10 @@ services:
     environment:
       - SNOW_SERVICE_USER=odes-nieve@ee-proyectosequiateleamb.iam.gserviceaccount.com
       - SNOW_SERVICE_CREDENTIALS_FILE=credentials
-      #- SNOW_MONTHS_TO_EXPORT='2022-11-01, 2022-10-01, 2022-09-01'
+      # - SNOW_MONTHS_TO_EXPORT='2022-11-01, 2022-10-01, 2022-09-01'
+      # - SNOW_REGIONS_ASSET_PATH = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
+      # - SNOW_EXPORT_TO = 'toAsset'
+      # - SNOW_ASSETS_PATH = 'projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci'
     
     secrets:
       - credentials
