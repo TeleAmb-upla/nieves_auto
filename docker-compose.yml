@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nieve_auto:
+    image: eriklinares/gee-nieve-sequia-auto:1.0.0
+    deploy:
+      replicas: 1 
+      resources: 
+        limits:
+          cpus: '1'
+          memory: '2G'
+    environment:
+      - SNOW_SERVICE_USER=odes-nieve@ee-proyectosequiateleamb.iam.gserviceaccount.com
+      - SNOW_SERVICE_CREDENTIALS_FILE=credentials
+      #- SNOW_MONTHS_TO_EXPORT='2022-11-01, 2022-10-01, 2022-09-01'
+    
+    secrets:
+      - credentials
+    
+secrets:
+  credentials:
+    file: credentials/ee-proyectosequiateleamb-22dbf24d5c96.json
+    

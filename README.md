@@ -3,6 +3,7 @@
 Script que genera SCI y CCI de la última imágen disponible en el catálogo de GEE.
 
 SCI: Snow Cover Index
+
 CCI: Cloud Cover Index
 
 

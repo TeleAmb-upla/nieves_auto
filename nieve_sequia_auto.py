@@ -10,28 +10,89 @@ This script usess the following conventions:
 
 '''
 
+# libraries
 import ee
 import geemap
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import json
 import pprint
 import pathlib
+from math import ceil
 from time import sleep
 from yaspin import yaspin
-from math import ceil
+import os
+import sys
+import argparse
 
+# Constants
+SNOW_SERVICE_USER = None
+SNOW_SERVICE_CREDENTIALS_FILE = None
+SNOW_MONTHS_TO_EXPORT = None
+SNOW_REGIONS_ASSET_PATH = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
+SNOW_EXPORT_TO = 'toAsset'
+SNOW_ASSETS_PATH = 'projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci'
+SNOW_DRIVE_PATH = None
+SNOW_STATUS_CHECK_WAIT = 30
+SNOW_MAX_EXPORTS = 10
 GEE_PATHPREFIX = 'projects/earthengine-legacy/assets/'
-DPA_REGIONES_NACIONALES = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
-SAVED_IMAGES_PATH = 'users/proyectosequiateleamb/Nieves/Raster_SCI_CCI'
 MODIS_MIN_MONTH = '2000-03'
 UTC_TZ=pytz.timezone('UTC')
 
-def current_year_month():
+def check_docker_secret(var):
     '''
-    Returns the current year and month from local machine
+    Checks if file exists in given path or in docker secrets. 
+    Returns None if file is not found or the file path if exits. 
+    '''
+    docker_secrets_path = "/var/run/secrets"
+    var_path=pathlib.Path(var)
+    docker_var_path = pathlib.Path(docker_secrets_path,var)   
+
+    if len(var_path.parts) > 1 and var_path.exists():
+            return var_path.as_posix()
+
+    elif docker_var_path.exists():
+            return docker_var_path.as_posix()
+    else:
+        print(f"file not found {var}")
+        return None
+        
+def set_script_config_var (var, required=False, parse=None):
+    try: 
+        # Check the required variable exists 
+        assert var in globals()
+    except:
+        print(f"Unknown variable")
+        sys.exit(0)
+    try:
+        value =  os.environ[var]
+        if parse == 'List':
+            value = [item.strip() for item in value.split(",")]
+        print(f"{var}: {value}")
+    except KeyError:
+        value = globals()[var]
+        print(f'Using default value: {var}={value}')
+    
+    if required==True and value==None:
+        print(f"{var} is required but no value was set")
+        sys.exit(0)
+    else:
+        return value
+
+def current_year_month()->str:
+    '''
+    Returns the current year and month from local machine time as a string
+    e.g. 2022-12
     '''
     return str(datetime.today().year) + "-" + str(datetime.today().month)
+
+def prev_month_last_date():
+    '''
+    Returns the last day of the previous month relative to the current date 
+    Current date is taken from datetime.today()
+    Returns a date object
+    '''
+    return datetime.today().date().replace(day=1) - timedelta(days=1)
 
 def format_ee_timestamp(dt, tz=UTC_TZ):
     '''
@@ -47,27 +108,39 @@ def print_ee_timestamp(dt, tz=UTC_TZ):
     '''
     print(format_ee_timestamp(dt, tz))
 
-def get_asset_list(parent):
+def get_asset_list(parent, asset_type=None):
     '''List assets from an assets foler in GGE
 
     reference: https://github.com/spatialthoughts/projects/blob/master/ee-python/list_all_assets.py
     '''
-    parent_asset = ee.data.getAsset(parent)
+    try:
+        parent_asset = ee.data.getAsset(parent)
+    except:
+        print(f"Can't find asset: {parent}")
+        raise
     parent_id = parent_asset['name']
     parent_type = parent_asset['type']
     asset_list = []
-    child_assets = ee.data.listAssets({'parent': parent_id})['assets']
+    try:
+        child_assets = ee.data.listAssets({'parent': parent_id})['assets']
+    except:    
+        print(f"Can't list objects in: {parent}")
+        raise
     for child_asset in child_assets:
         child_id = child_asset['name']
         child_type = child_asset['type']
+        # print(f"{child_id}:{child_type}")
         if child_type in ['FOLDER','IMAGE_COLLECTION']:
             # Recursively call the function to get child assets
             asset_list.extend(get_asset_list(child_id))
         else:
-            asset_list.append(child_id)
+            if type(asset_type) == str:
+                asset_type=[asset_type]
+            if child_type in asset_type or child_type == None:
+                asset_list.append(child_id)
     return asset_list
 
-def check_asset_exists(asset: str):
+def check_asset_exists(asset: str, asset_type=None):
     '''Test if feature collection is in the asset list.
     Returns True if asset is found, False if it isn't
     '''
@@ -77,7 +150,7 @@ def check_asset_exists(asset: str):
 
     # Get list of assets in given path
     try: 
-        asset_list = get_asset_list(asset_path)
+        asset_list = get_asset_list(asset_path, asset_type=asset_type)
         # Print list of assets found
         print('Found {} assets'.format(len(asset_list)))
         # for asset_x in asset_list:
@@ -94,6 +167,36 @@ def check_asset_exists(asset: str):
 
     print(f"Asset successfully found: {asset_found}")
     return asset_found
+
+def rm_incomplete_months_from_ic(collection, last_expected_img_dt=prev_month_last_date()):
+    '''
+    Remove last month from an image collection if it doesn't have all the images for the month
+    The month is removed if the image of the last day of the month is not present.
+    Returns: an ImageCollection
+    '''
+# TODO: MAke this a reursive function to eliminate last months until we find a full month
+    last_image_dt = ee.Date(collection.sort(
+        prop='system:time_start', 
+        opt_ascending=False
+        ).first().get('system:time_start')).getInfo()
+
+    last_image_dt = format_ee_timestamp(last_image_dt).date()
+
+    if last_image_dt!=last_expected_img_dt:
+        print("Images from the previous month might be missing:")
+        print(f"\t Last Image Expected: {last_expected_img_dt}")
+        print(f"\t Last Image found: {last_image_dt}")
+        incomplete_month = f"{last_expected_img_dt.year}-{last_expected_img_dt.month}"
+        print(f"Removing Incomplete month {incomplete_month} from collection...")
+        new_end_date = last_expected_img_dt.replace(day=1)
+        new_end_date_ym = f"{new_end_date.year}-{new_end_date.month}"
+        collection = collection.filterDate(MODIS_MIN_MONTH, new_end_date_ym)
+        new_last_month = new_end_date - timedelta(days=1)
+        print(f"New last month is: {new_last_month.year}-{new_last_month.month}")
+
+    else:
+        print(f"Last complete month: {last_expected_img_dt.year}-{last_expected_img_dt.month}")
+    return collection
 
 def get_ic_distinct_months(collection):
     '''
@@ -163,7 +266,7 @@ def imagecollection_monthly_mean(months: list, collection):
         ee_target_year=ee_target_ym.get('year')
         # target month end date
         ee_post_target_ym=ee_target_ym.advance(1,"month")
-        print(f"Processing: {format_ee_timestamp(ee_target_ym.getInfo())} - {format_ee_timestamp(ee_post_target_ym.getInfo())}")
+        print(f"Processing: {format_ee_timestamp(ee_target_ym.getInfo()).date()} - {format_ee_timestamp(ee_post_target_ym.getInfo()).date()}")
 
         # Calculate mean
         ee_image = collection.filterDate(ee_target_ym, ee_post_target_ym).mean()
@@ -220,88 +323,222 @@ def check_gee_task_status(task, wait_time=0, spinner=True):
         print(task_status['error_message'])
 
 def main():
-    # TODO: Get config values from environment variables
+    ## ------ PARSING COMMAND LINE ARGUMENTS
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-u", "--service-user", dest='user', help="Service account user ID")
+    parser.add_argument("-c", "--service-credentials", dest='credentials', help="Service account credentials file location")
+    parser.add_argument("-s", "--asset-path", dest="asset_path", help="GEE asset path for saving images")
+    parser.add_argument("-r", "--regions-path", dest="regions_path", help="GEE asset path for reading regions FeatureCollection")
+    parser.add_argument("-e", "--export-to", dest="export_to", help="Where to export images. Valid options [toAsset | toDrive]. Default is toAsset ", choices=['toAsset','toDrive'])
+    parser.add_argument("-m", "--months", dest="months", help="string of months to export '2022-11-01, 2022-10-01'. Default is to export the last fully available month in MODIS")
 
-    # TODO: Get for GEE service account information from Environment Variables
+    args= parser.parse_args()
+
+    if args.user:
+        globals()['SNOW_SERVICE_USER']=args.user
+    if args.credentials:
+        globals()['SNOW_SERVICE_CREDENTIALS_FILE']=args.credentials
+    if args.asset_path:
+        globals()['SNOW_ASSETS_PATH=args.asset_path']=args.asset_path
+    if args.regions_path:
+        globals()['SNOW_REGIONS_ASSET_PATH']=args.regions_path
+    if args.export_to:
+        globals()['SNOW_EXPORT_TO']=args.export_to
+    if args.months:
+        globals()["SNOW_MONTHS_TO_EXPORT"]=[month.strip() for month in args.months.split(',')]
     
-    # Connect to GEE using service account for atutomation
-    service_account = "nieves-test@ee-chompitest.iam.gserviceaccount.com"
-    credentials_file = 'ee-chompitest-ccb9a3676966.json'
-    credentials = ee.ServiceAccountCredentials(service_account, credentials_file )
-    ee.Initialize(credentials)    
+    print(f"------Starting script: {datetime.today()}-------")
+    ## ------ SCRIPT SETUP ---------
+    print(f"----- Initiating Setup")
+    # Set script config from environmental vars
+    SNOW_SERVICE_USER = set_script_config_var('SNOW_SERVICE_USER', required=True)
+    SNOW_SERVICE_CREDENTIALS_FILE = set_script_config_var(
+        'SNOW_SERVICE_CREDENTIALS_FILE', 
+        required=True)
+    SNOW_REGIONS_ASSET_PATH = set_script_config_var('SNOW_REGIONS_ASSET_PATH', required=True)
+    SNOW_EXPORT_TO=set_script_config_var('SNOW_EXPORT_TO', required=True)
+    SNOW_ASSETS_PATH = set_script_config_var('SNOW_ASSETS_PATH')
+    SNOW_DRIVE_PATH = set_script_config_var('SNOW_DRIVE_PATH')
+    SNOW_MONTHS_TO_EXPORT = set_script_config_var('SNOW_MONTHS_TO_EXPORT', parse='List')
 
+    # Exit if no asset or drive path was set.
+    if SNOW_ASSETS_PATH == None and SNOW_DRIVE_PATH == None:
+        print("No Asset or Drive path provided")
+        sys.exit()
+
+    # Exit if credentials file doesn't exist in given path or as a docker secret
+    SNOW_SERVICE_CREDENTIALS_FILE = check_docker_secret(SNOW_SERVICE_CREDENTIALS_FILE)
+    if SNOW_SERVICE_CREDENTIALS_FILE is None:
+        print("Service account credentials file was nas not found")
+        sys.exit()
+
+    # Exit if SNOW_MONTHS_TO_EXPORT environment variable was provided but has
+    # incorrect values
+    # TODO: Check SNOW_MONTHS_TO_EXPORT for incorrect values
+    
+    ## ------ GEE CONNECTION ---------
+    print(f"----- Connecting to GEE")
+    # Connect to GEE using service account for atutomation
+    try:
+        credentials = ee.ServiceAccountCredentials(SNOW_SERVICE_USER, SNOW_SERVICE_CREDENTIALS_FILE )
+        ee.Initialize(credentials)    
+        print("Connection successful")
+    except Exception as err:
+        print(err)
+        sys.exit()
+
+    ## ------ READING REGIONS ---------
+    print(f"----- Reading Regions")
     # Check if "DPA_regiones_nacionales" feature collection exists else stop script
     try: 
-        if check_asset_exists(DPA_REGIONES_NACIONALES):
-            ee_territorio_nacional = ee.FeatureCollection(DPA_REGIONES_NACIONALES)
+        if check_asset_exists(SNOW_REGIONS_ASSET_PATH, "TABLE"):
+            ee_territorio_nacional = ee.FeatureCollection(SNOW_REGIONS_ASSET_PATH)
 
     except:
-        pass
+        print('Could not read Regions. Terminating Script')
+        sys.exit()
 
-
+    ## ------ READING FROM MODIS ---------
+    print(f"----- Reading from MODIS")
     # Get MODIS image Collection and take date from the last image.
     # Remove images from current month to avoid incomplete months
-    ee_MODIS_collection = (ee.ImageCollection('MODIS/006/MOD10A1'))
-    ee_MODIS_collection = ee_MODIS_collection.filterDate(MODIS_MIN_MONTH, current_year_month())
+    # And Check if previous month has all the images for the month
+    # otherwise remove the month if not complete
+    try: 
+        ee_MODIS_collection = (ee.ImageCollection('MODIS/006/MOD10A1'))
+        ee_MODIS_collection = ee_MODIS_collection.filterDate(MODIS_MIN_MONTH, current_year_month())
+        ee_MODIS_collection = rm_incomplete_months_from_ic(ee_MODIS_collection)
 
-    # Get list of dates from image collection
-    MODIS_distinct_months = get_ic_distinct_months(ee_MODIS_collection)
+        # Get list of dates from image collection
+        MODIS_distinct_months = get_ic_distinct_months(ee_MODIS_collection)
+    except Exception as e:
+        print("Couldn't read from MODIS. Terminating Script")
+        print(e)
+        sys.exit()
 
+    ## ------ CHECKING IMAGES ALREADY SAVED ---------
+    print(f"----- CHECKING IMAGES ALREADY SAVED")
     # Get list of months of images already saved 
-    saved_assets=get_asset_list(SAVED_IMAGES_PATH)
+    # TODO: Need an option to search assets from Drive in case exporting to Drive
+    saved_assets=get_asset_list(SNOW_ASSETS_PATH, "IMAGE")
     saved_assets_months = [date[-7:]+'-01' for date in saved_assets]
     saved_assets_months.sort(reverse=True)
-
     print(f"Total images saved in folder: {len(saved_assets_months)}")
-    print(f"first month saved: {saved_assets_months[-1]}")
-    print(f"last month saved: {saved_assets_months[0]}")
-    # mising_months = [date for date in MODIS_distinct_months if date not in saved_assets_months]
-    # Check if last available month in MODIS is already saved
-
-    last_saved = saved_assets_months[0]
-    last_available = MODIS_distinct_months[0]
-    if(last_saved == last_available):
-        print(f"Last available month is already saved: {last_available}")
+    if len(saved_assets_months)>0:
+        print(f"first month saved: {saved_assets_months[-1]}")
+        print(f"last month saved: {saved_assets_months[0]}")
+  
+    ## ------ DETERMINE MONTHS TO SAVE ---------
+    print(f"----- Determining dates to save")
+    # Save images of months in SNOW_MONTHS_TO_EXPORT otherwise save
+    # the last available month in MODIS
+    if SNOW_MONTHS_TO_EXPORT == None:
+        try: 
+            last_available = MODIS_distinct_months[0]
+            months_to_save=[last_available]
+        except:
+            months_to_save=[]
     else:
-        months_to_save=[last_available]
-        print(f"Pending months: {months_to_save}")
+        months_to_save=SNOW_MONTHS_TO_EXPORT
 
-    ## ONLY RUN IF MONTHS TO SAVE >= 1
-    if len(months_to_save)>=1: 
+    # Check if months to save have already been saved
+    months_already_saved = [month for month in months_to_save if month in saved_assets_months]
+    months_to_save = [month for month in months_to_save if month not in months_already_saved]
+    
+    if len(months_already_saved) >= 1:
+        print(f"Months already saved: {months_already_saved}")
+
+    if len(months_to_save)==0:
+        print(f"No new months to save. Exiting script")
+        sys.exit()
+    else:
+        print(f"Months to save: {months_to_save}")
+
+    
+    ## ------ SCI, CCI CALCULATIONS ---------
+    print(f"----- Calculationg SCI, CCI")
+    ## ONLY RUNS IF MONTHS TO SAVE >= 1
+    
+    
+    try:
         # Calculate and select snow and cloud bands
         ee_snow_cloud_collection = ee_MODIS_collection.map(snow_cloud_mask).select('SCI', 'CCI');
-
+    
         # Calculate mean for last month in collection
         ee_monthly_snow_cloud_collection = imagecollection_monthly_mean(
             months_to_save, 
             ee_snow_cloud_collection
             )
 
-        # Sort and get last image only in case there's more than one month processed
-        ee_monthly_snow_cloud_collection = ee_monthly_snow_cloud_collection.sort(
-                prop='system:time_start', 
-                opt_ascending=False)
+    except Exception as e:
+        print("Couldn't calculate SCI, CCI monthly mean. Terminating Script")
+        print(e)
+        sys.exit()
 
-        ee_last_snow_cloud_image = ee_monthly_snow_cloud_collection.first()
+    ee_filtered_snow_collection = ee_monthly_snow_cloud_collection
+
+    ## ------ EXPORT TASKS ---------
+    print(f"----- Exporting Images")
+    # TODO: Need to connect and export to Google drive
+
+    print(f"Exporting to:{SNOW_EXPORT_TO}")
+    export_tasks=[]
+    max_exports=SNOW_MAX_EXPORTS
+    for month in months_to_save:
+        if max_exports==0:
+            break
+        else:
+            max_exports -= 1
         
-        print("Exporting image...")
-        property = ee_last_snow_cloud_image.get('system:time_start').getInfo()
-        image_name = 'MOD10A1_SCI_CCI_' + property
+        ee_image = ee_monthly_snow_cloud_collection.filterDate(month).first()
+        property_ym = ee_image.get('system:time_start').getInfo()
+        image_name = 'MOD10A1_SCI_CCI_' + property_ym
+        print(f"Exporting image: {image_name}")
 
-        task = ee.batch.Export.image.toAsset(**{
-        'image': ee_last_snow_cloud_image,
-        'description': image_name,
-        #'assetId': pathlib.Path(SAVED_IMAGES_PATH, image_name).as_posix()
-        'assetId': 'projects/ee-chompitest/assets/snow/Raster_SCI_CCI/'+image_name,
-        'scale': 500,
-        'region': ee_territorio_nacional.geometry(),
-        })
+        if SNOW_EXPORT_TO == "toAsset":
+            task = ee.batch.Export.image.toAsset(**{
+            'image': ee_image,
+            'description': image_name,
+            'assetId': pathlib.Path(SNOW_ASSETS_PATH, image_name).as_posix(),
+            'scale': 500,
+            'region': ee_territorio_nacional.geometry(),
+            })
+        elif SNOW_EXPORT_TO == "toDrive":
+            pass
 
-        task.start()
+        export_tasks.append(task)
 
-        print("Checking Export task status...")
-        check_gee_task_status(task, spinner=False)
+    # Start tasks 
+    for task in export_tasks:
+        try:
+            task.start()
+        except:
+            print(f"Export Task failed: {task}")
+    
+    print("----- Checking Export Status...")
+    export_running = True
+    tasks_finished=[]
+    while export_running:
+        export_running = False
+        for i, task in enumerate(export_tasks):
+            if i not in tasks_finished:
+                status=task.status()
+                if status['state'] in ("UNSUBMITTED"):
+                    print(f"{task}") 
+                elif status['state'] in ("SUBMITTED", "READY","RUNNING"):
+                    export_running = True
+                elif status['state'] in ("COMPLETED", "CANCEL_REQUESTED", "CANCELLED"):
+                    print(f"{status['description']}: {status['state']}")
+                    tasks_finished.append(i)   
+                elif status['state'] in ("FAILED"):
+                    print(f"{status['description']}: {status['state']}")
+                    print(f"error: {status['error_message']}")
+                    tasks_finished.append(i)
+        if export_running:
+            sleep(SNOW_STATUS_CHECK_WAIT)
 
+    print(f"----- Script finnished successfully")
+    print(f"----- Finishing script: {datetime.today()}-------")
 
 if __name__=='__main__':
     main()
