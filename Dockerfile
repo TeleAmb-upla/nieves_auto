@@ -42,7 +42,5 @@ RUN chmod 0644 /etc/cron.d/nieves-crontab && \
 # During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
 # CMD ["python", "nieve_sequia_auto.py"]
 
-# Use supervisor to enable SSH along with jupyterhub
-#CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
-#CMD ["/usr/bin/supervisord"]
+# Use supervisor to manage cron
 CMD ["/app/nieves_autorun.sh"]
