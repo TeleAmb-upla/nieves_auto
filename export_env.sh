@@ -19,7 +19,7 @@ if [[ -v REGIONS_ASSET_PATH ]]; then
 fi
 
 if [[ -v EXPORT_TO ]]; then
-  echo "export REGIONS_ASSET_PATH=$EXPORT_TO" >> /app/set_env.sh;
+  echo "export EXPORT_TO=$EXPORT_TO" >> /app/set_env.sh;
 fi
 
 if [[ -v ASSETS_PATH ]]; then
@@ -27,7 +27,7 @@ if [[ -v ASSETS_PATH ]]; then
 fi
 
 if [[ -v DRIVE_PATH ]]; then
-  echo "export REGIONS_ASSET_PATH=$DRIVE_PATH" >> /app/set_env.sh;
+  echo "export DRIVE_PATH=$DRIVE_PATH" >> /app/set_env.sh;
 fi
 
 if [[ -v MONTHS_TO_EXPORT ]]; then
