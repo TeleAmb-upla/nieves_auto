@@ -289,45 +289,50 @@ def main():
     ## ------ SCRIPT SETUP ---------
     logging.debug("---Initiating script setup")
     # Set script config from environmental vars
-    SERVICE_USER = scripting.set_script_config_var(
-        var='SERVICE_USER', 
-        arg_value=args.user, 
-        default=DEFAULTS["SERVICE_USER"],
-        required=True)
-    SERVICE_CREDENTIALS_FILE = scripting.set_script_config_var(
-        var='SERVICE_CREDENTIALS_FILE', 
-        arg_value=args.credentials,
-        default=DEFAULTS["SERVICE_CREDENTIALS_FILE"],
-        required=True)
-    REGIONS_ASSET_PATH = scripting.set_script_config_var(
-        var='REGIONS_ASSET_PATH',
-        arg_value=args.regions_path,
-        default=DEFAULTS["REGIONS_ASSET_PATH"],
-        required=True)
-    EXPORT_TO = scripting.set_script_config_var(
-        var='EXPORT_TO', 
-        arg_value=args.export_to,
-        default=DEFAULTS["EXPORT_TO"],
-        required=True)
-    # if EXPORT_TO == "toAsset":
-    ASSETS_PATH = scripting.set_script_config_var(
-        var='ASSETS_PATH',
-        arg_value=args.asset_path,
-        default=DEFAULTS["ASSETS_PATH"]
-        )
-    #if EXPORT_TO == "toDrive":
-    DRIVE_PATH = scripting.set_script_config_var(
-        var='DRIVE_PATH',
-        arg_value=args.drive_path,
-        default=DEFAULTS["DRIVE_PATH"]
-        )
-    MONTHS_TO_EXPORT=scripting.set_script_config_var(
-        var='MONTHS_TO_EXPORT', 
-        arg_value=args.months,
-        default=DEFAULTS["MONTHS_TO_EXPORT"],
-        parse='List'
-        )
-    
+    try:
+        SERVICE_USER = scripting.set_script_config_var(
+            var='SERVICE_USER', 
+            arg_value=args.user, 
+            default=DEFAULTS["SERVICE_USER"],
+            required=True)
+        SERVICE_CREDENTIALS_FILE = scripting.set_script_config_var(
+            var='SERVICE_CREDENTIALS_FILE', 
+            arg_value=args.credentials,
+            default=DEFAULTS["SERVICE_CREDENTIALS_FILE"],
+            required=True)
+        REGIONS_ASSET_PATH = scripting.set_script_config_var(
+            var='REGIONS_ASSET_PATH',
+            arg_value=args.regions_path,
+            default=DEFAULTS["REGIONS_ASSET_PATH"],
+            required=True)
+        EXPORT_TO = scripting.set_script_config_var(
+            var='EXPORT_TO', 
+            arg_value=args.export_to,
+            default=DEFAULTS["EXPORT_TO"],
+            required=True)
+        # if EXPORT_TO == "toAsset":
+        ASSETS_PATH = scripting.set_script_config_var(
+            var='ASSETS_PATH',
+            arg_value=args.asset_path,
+            default=DEFAULTS["ASSETS_PATH"]
+            )
+        #if EXPORT_TO == "toDrive":
+        DRIVE_PATH = scripting.set_script_config_var(
+            var='DRIVE_PATH',
+            arg_value=args.drive_path,
+            default=DEFAULTS["DRIVE_PATH"]
+            )
+        MONTHS_TO_EXPORT=scripting.set_script_config_var(
+            var='MONTHS_TO_EXPORT', 
+            arg_value=args.months,
+            default=DEFAULTS["MONTHS_TO_EXPORT"],
+            parse='List'
+            )
+    except Exception as err:
+        print_log(err, 'ERROR')
+        logging.info("------ EXITING SCRIPT ------")
+        sys.exit() 
+
     # ----CHECK INPUTS ARE VALID BEFORE CONTINUING----.
     # Exit if no gee asset or google drive path was set.
     if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:

@@ -1,7 +1,5 @@
-import sys
 import os
 import logging
-from . import logs
 
 def set_script_config_var (var:str, arg_value:str=None, default=None, 
                            required:bool=False, parse:str=None):
@@ -18,14 +16,6 @@ def set_script_config_var (var:str, arg_value:str=None, default=None,
     Returns:
         Returns a string or a list.
     '''
-    # Check the required variable exists in globals otherwise Exit
-    # try: 
-    #     assert var in globals()
-    # except:
-    #     logging.print_log(f"{var}: Unknown variable", "ERROR")
-    #     sys.exit(0)
-    
-    # Set var value
     using_default_msg=""
     try:
         if arg_value:
@@ -37,17 +27,28 @@ def set_script_config_var (var:str, arg_value:str=None, default=None,
         using_default_msg= "(default value)"
 
     # Parse values 
+    # Currently 'List' is the only one parsing option 
     if value and parse:
         try: 
             if parse == 'List':
                 value = [item.strip() for item in value.split(",")]
-        except:
-            logs.print_log(f"Could not parse value as: {parse}", "ERROR")
+            else:
+                raise TypeError(f'No method to parse as: {parse}')
+        except TypeError:
+            raise 
+        except Exception: 
+            raise Exception(f'Could not parse value as: {parse}')
 
     # Error out if var is required but value is None
     if required==True and value==None:
-        logs.print_log(f"{var} is required but no value was set", 'ERROR')
-        sys.exit(0)
+        raise Exception(f"{var} is required but no value was set")
     
+    # Save value assignment to log file
     logging.debug(f"{var}: {value} {using_default_msg}")
     return value
+
+def main():
+    pass
+
+if __name__=="__main__":
+    main()
