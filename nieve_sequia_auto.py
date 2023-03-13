@@ -219,9 +219,7 @@ def get_month_from_asset_name(assets_list):
     else:
         assets_months = []
     return assets_months
-
-def main():
-    ## ------ PARSE COMMAND LINE ARGUMENTS
+def set_argument_parser():
     parser = argparse.ArgumentParser()
     ## Credential Arguments
     parser.add_argument("-u", "--service-user", dest='user', 
@@ -247,18 +245,16 @@ def main():
     parser.add_argument("-l", "--log-level", dest="log_level", 
                         help="Logging level", 
                         choices=['DEBUG', 'INFO', 'WARNING', 'ERROR'])
+    return parser
 
+def main():
+    ## ------ PARSE COMMAND LINE ARGUMENTS
+    parser=set_argument_parser()
     args= parser.parse_args()
-    
-    # Check if a time period argument was provided. 
-    # Is so, create a list of period dates. 
-    args_months=None
-    if args.months:
-        args_months=[month.strip() for month in args.months.split(',')]
-        
     
     ## ------ Setup Logging ------------
     ## Read logging from arguments else check Environment var else use default
+    # TODO: Move logging setup to separate function 
     try:
         if args.log_level:
             log_level=args.log_level.upper()
