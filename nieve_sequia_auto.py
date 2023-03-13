@@ -392,7 +392,7 @@ def main():
     if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:
         try:
            if not gee_assets.check_folder_exists(path=ASSETS_PATH):
-               raise Exception("GEE Asset folder not found")
+               raise Exception(f"GEE Asset folder not found: {ASSETS_PATH}")
         except Exception as error:
             print_log(error, "ERROR")
             logging.info("------ EXITING SCRIPT ------")
@@ -404,7 +404,7 @@ def main():
                drive_service=service,
                path=DRIVE_PATH
                ):
-               raise Exception("Google Drive folder not found")
+               raise Exception(f"Google Drive folder not found: {DRIVE_PATH}")
         except Exception as error:
             print_log(error, "ERROR")
             logging.info("------ EXITING SCRIPT ------")
