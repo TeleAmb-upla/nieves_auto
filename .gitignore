@@ -2,4 +2,6 @@
 **/credentials
 **/.vscode
 **/*.debug.yml
+**/*.log
+
 
