@@ -314,13 +314,15 @@ def main():
         ASSETS_PATH = scripting.set_script_config_var(
             var='ASSETS_PATH',
             arg_value=args.asset_path,
-            default=DEFAULTS["ASSETS_PATH"]
+            default=DEFAULTS["ASSETS_PATH"], 
+            required=(EXPORT_TO in ['toAsset', 'toAssetAndDrive'])
             )
         #if EXPORT_TO == "toDrive":
         DRIVE_PATH = scripting.set_script_config_var(
             var='DRIVE_PATH',
             arg_value=args.drive_path,
-            default=DEFAULTS["DRIVE_PATH"]
+            default=DEFAULTS["DRIVE_PATH"],
+            required=(EXPORT_TO in ['toDrive', 'toAssetAndDrive'])
             )
         MONTHS_TO_EXPORT=scripting.set_script_config_var(
             var='MONTHS_TO_EXPORT', 
@@ -332,21 +334,6 @@ def main():
         print_log(err, 'ERROR')
         logging.info("------ EXITING SCRIPT ------")
         sys.exit() 
-
-    # ----CHECK INPUTS ARE VALID BEFORE CONTINUING----.
-    # Exit if no gee asset or google drive path was set.
-    if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:
-        if not ASSETS_PATH:
-            print_log("No GEE Asset path provided", 'ERROR')
-            logging.info("------ EXITING SCRIPT ------")
-            sys.exit()    
-    
-    if EXPORT_TO in ['toDrive', 'toAssetAndDrive']:
-        if not DRIVE_PATH:
-            print_log("No Google Drive path provided", 'ERROR')
-            logging.info("------ EXITING SCRIPT ------")
-            sys.exit()    
-    
 
     # Exit if credentials file doesn't exist
     # This checks in the given path or as a docker secret
