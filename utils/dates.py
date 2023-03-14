@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta
+import logging
 
 def check_valid_date(date_string:str)->bool:
     '''
@@ -11,9 +12,10 @@ def check_valid_date(date_string:str)->bool:
         Returns TRUE if the string has a valid date format
     '''
     try:
-        date.fromisoformat(date_string)
+        valid_date=date.fromisoformat(date_string)
         return True
-    except:
+    except Exception as e:
+        logging.warning(e)
         return False
     
 def check_valid_date_list(date_list: list)->bool:
@@ -26,7 +28,11 @@ def check_valid_date_list(date_list: list)->bool:
     Returns: 
         Returns TRUE if all the stings in the list are valid dates
     '''
-    return all(map(check_valid_date, date_list))
+    try: 
+        return all(map(check_valid_date, date_list))
+    except Exception as e:
+        logging.warning(e)
+        return False
 
 def current_year_month()->str:
     '''
