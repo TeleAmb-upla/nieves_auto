@@ -16,11 +16,17 @@ def check_docker_secret(var:str)->str:
     var_path=pathlib.Path(var)
     docker_var_path = pathlib.Path(docker_secrets_path,var)   
 
-    if len(var_path.parts) > 1 and var_path.exists():
-            return var_path.as_posix()
-
-    elif docker_var_path.exists():
-            return docker_var_path.as_posix()
-    else:
-        logging.warning(f"file not found {var}")
-        return None
+    # Search for file path provided
+    try:
+        if  var_path.exists():
+                return var_path.as_posix()
+        
+        # else, if only file name is provided, try to find the file in docker secrets
+        elif len(var_path.parts) == 1 and docker_var_path.exists():
+                return docker_var_path.as_posix()
+        else:
+            raise FileNotFoundError(f"file not found: {var}")
+    except (FileNotFoundError, Exception):
+          raise
+    
+          
