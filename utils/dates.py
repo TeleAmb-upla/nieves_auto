@@ -51,3 +51,8 @@ def prev_month_last_date()->datetime:
     '''
     return datetime.today().date().replace(day=1) - timedelta(days=1)
 
+def main():
+    pass
+
+if __name__=='__main__':
+    pass
