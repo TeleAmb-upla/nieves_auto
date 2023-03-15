@@ -21,7 +21,6 @@ def get_folder_id(drive_service, path:str, parent:str=None):
     # Parse path 
     path_tuple = Path(path).parts
     current_folder=path_tuple[0]
-    folder_id=current_folder
 
     # Build query string
     query = "mimeType = 'application/vnd.google-apps.folder'"
@@ -53,14 +52,15 @@ def get_folder_id(drive_service, path:str, parent:str=None):
         if len(items)>=1:
             current_folder_id=items[0]['id']
         else:
-            current_folder_id=None
+            # Stop and return
+            return None
 
     except HttpError as error:
-        print('folder not found')
-        print(error)
-        current_folder_id = None
+        logging.warning(error)
+        # Stop and return
+        return None
     
-    target_folder_id =current_folder_id 
+    target_folder_id = current_folder_id 
 
     # Recursive call if path if not yet in target folder 
     if len(path_tuple)>1 and current_folder_id:
@@ -197,7 +197,7 @@ def check_asset_exists(drive_service, asset: str, asset_type=None):
         logging.debug('Found {} assets'.format(len(asset_list)))
 
     except:
-        logs.print_log("Asset list could not be retreived", "WARNING")
+        logging.warning("Asset list could not be retreived")
         return None
 
     # Check if asset is in asset list
@@ -212,7 +212,7 @@ def check_asset_exists(drive_service, asset: str, asset_type=None):
 
     return asset_found
 
-def check_folder_exists(drive_service, path:str):
+def check_folder_exists(drive_service, path:str)->bool:
     folder_id=get_folder_id(
         drive_service=drive_service,
         path=path
@@ -249,4 +249,10 @@ def get_asset_list(drive_service, path, asset_type=None):
     if asset_list:
         asset_list = list(map(remove_extension, asset_list))
     return asset_list
+
+def main():
+    pass
+
+if __name__=="__main__":
+    main()
     
