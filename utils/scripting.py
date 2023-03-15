@@ -24,7 +24,7 @@ def set_script_config_var (var:str, arg_value:str=None, default=None,
             value =  os.environ[var]
     except KeyError as e:
         value = default
-        using_default_msg= "(default value)"
+        using_default_msg= "(using default value)"
 
     # Parse values 
     # Currently 'List' is the only one parsing option 
