@@ -44,7 +44,7 @@ DEFAULTS = {
 'MONTHS_TO_EXPORT': None,
 'REGIONS_ASSET_PATH': 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional',
 'EXPORT_TO': 'toAsset',
-'ASSETS_PATH': 'projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci',
+'ASSETS_PATH': None,
 'DRIVE_PATH': None,
 'STATUS_CHECK_WAIT': 30,
 'MAX_EXPORTS': 10,
@@ -53,36 +53,58 @@ DEFAULTS = {
 
 def rm_incomplete_months_from_ic(collection, last_expected_img_dt=dates.prev_month_last_date()):
     '''
-    Remove last month from an image collection if it doesn't have all the images for the month
-    The month is removed if the image of the last day of the month is not present.
+    Removes last months from an image collection if they don't have all the images for the month. Meaning, it is \'incomplete\'.
+    The month is considered incomplete if the image of the last day of the month is not present.
+    
+    Args:
+        collection: an Image collection
+        Last_expected_img_dt: date of the last expected image in a collection. 
+
     Returns: an ImageCollection
     '''
-    last_image_dt = ee.Date(collection.sort(
-        prop='system:time_start', 
-        opt_ascending=False
-        ).first().get('system:time_start')).getInfo()
+    try: 
+        # Get the date of the last image in the collection 
+        last_image_dt = ee.Date(collection.sort(
+            prop='system:time_start', 
+            opt_ascending=False
+            ).first().get('system:time_start')).getInfo()
+    except Exception as e:
+        logging.error('Couldn\'t get image date from gee')
+        raise
+    try:
+        # Copy date of last image from server
+        last_image_dt = gee_dates.format_ee_timestamp(last_image_dt).date()
+    except Exception as e:
+        logging.error('Couldn\'t format image date from gee' )
 
-    last_image_dt = gee_dates.format_ee_timestamp(last_image_dt).date()
-
-    if last_image_dt!=last_expected_img_dt:
-        incomplete_month = f"{last_expected_img_dt.year}-{last_expected_img_dt.month}"
-        print_log(f"Removing Incomplete month {incomplete_month} from collection...", "INFO")
-        logging.debug(f"\t Last Image Expected: {last_expected_img_dt}")
-        logging.debug(f"\t Last Image found: {last_image_dt}")
-        new_end_date = last_expected_img_dt.replace(day=1)
-        new_end_date_ym = f"{new_end_date.year}-{new_end_date.month}"
-        collection = collection.filterDate(DEFAULTS['MODIS_MIN_MONTH'], new_end_date_ym)
-        new_last_month = new_end_date - timedelta(days=1)
-        logging.debug(f"New last month is: {new_last_month.year}-{new_last_month.month}")
-        logging.debug(f"\t New Last Image Expected: {new_last_month}")
-        # Recurrent call in case more incomplete months are present
-        collection=rm_incomplete_months_from_ic(
-            collection=collection, 
-            last_expected_img_dt=new_last_month
-            )
-    else:
-        logging.info(f"Last complete month in collection: {last_expected_img_dt.year}-{last_expected_img_dt.month}")
-    return collection
+    try: 
+        # Remove the last month if last image != last expected image
+        if last_image_dt!=last_expected_img_dt:
+            incomplete_month = f"{last_expected_img_dt.year}-{last_expected_img_dt.month}"
+            msg = f"Removing Incomplete month {incomplete_month} from collection..."
+            print(msg)
+            logging.info(msg)
+            logging.debug(f"\t Last Image Expected: {last_expected_img_dt}")
+            logging.debug(f"\t Last Image found: {last_image_dt}")
+            new_end_date = last_expected_img_dt.replace(day=1)
+            new_end_date_ym = f"{new_end_date.year}-{new_end_date.month}"
+            collection = collection.filterDate(DEFAULTS['MODIS_MIN_MONTH'], new_end_date_ym)
+            new_last_month = new_end_date - timedelta(days=1)
+            logging.debug(f"New last month is: {new_last_month.year}-{new_last_month.month}")
+            logging.debug(f"\t New Last Image Expected: {new_last_month}")
+            # Recurrent call in case more incomplete months are present
+            collection=rm_incomplete_months_from_ic(
+                collection=collection, 
+                last_expected_img_dt=new_last_month
+                )
+        else:
+            # Return new image collection if there are no incomplete months to remove
+            logging.info(f"Last complete month in collection: {last_expected_img_dt.year}-{last_expected_img_dt.month}")
+        return collection
+    except Exception as e:
+        logging.error('Couldn\'t remove images of incomplete months from image collection.' )
+        logging.error(e)
+        raise
 
 def get_ic_distinct_months(collection):
     '''
@@ -336,15 +358,15 @@ def main():
         sys.exit() 
 
     # Exit if credentials file doesn't exist
-    # This checks in the given path or as a docker secret
-    SERVICE_CREDENTIALS_FILE = dockers.check_docker_secret(SERVICE_CREDENTIALS_FILE)
-    if SERVICE_CREDENTIALS_FILE is None:
-        print_log("Service account credentials file was nas not found", 'ERROR')
+    # Search for file in given path and docker secrets
+    try:
+        SERVICE_CREDENTIALS_FILE = dockers.check_docker_secret(SERVICE_CREDENTIALS_FILE)
+    except Exception as e:
+        print_log(f"SERVICE_CREDENTIALS_FILE - {e}", 'ERROR')
         logging.info("------ EXITING SCRIPT ------")
         sys.exit()
 
-    # Exit if MONTHS_TO_EXPORT
-    # variable was provided but has incorrect values
+    # Exit if MONTHS_TO_EXPORT variable was provided but has incorrect values
     if MONTHS_TO_EXPORT:
         if not dates.check_valid_date_list(MONTHS_TO_EXPORT):
             print_log("One or more dates provided in MONTHS_TO_EXPORT are not valid", 'ERROR')
@@ -364,9 +386,8 @@ def main():
         sys.exit()
     
     ## ------ GOOGLE DRIVE CONNECTION --------
-    logging.debug("--- Connecting to Google Drive")
-    # Connect to Google drive using service account for automation
     if EXPORT_TO in ['toDrive', 'toAssetAndDrive']:
+        logging.debug("--- Connecting to Google Drive")
         try:
             # Connect to Google API and build service 
             creds = service_account.Credentials.from_service_account_file(SERVICE_CREDENTIALS_FILE)
@@ -377,6 +398,7 @@ def main():
             sys.exit()
     
     ## ------ CHECK GEE ASSET PATH OR GOOGLE DRIVE PATH ARE VALID --------
+    # GEE Assets
     if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:
         try:
            if not gee_assets.check_folder_exists(path=ASSETS_PATH):
@@ -385,7 +407,8 @@ def main():
             print_log(error, "ERROR")
             logging.info("------ EXITING SCRIPT ------")
             sys.exit()
-
+    
+    # Google Drive
     if EXPORT_TO in ['toDrive', 'toAssetAndDrive']:
         try:
            if not drive_assets.check_folder_exists(
@@ -419,12 +442,19 @@ def main():
     # otherwise remove the month as 'incomplete'
     try: 
         ee_MODIS_collection = (ee.ImageCollection('MODIS/006/MOD10A1'))
+    except Exception as e:
+        print_log("Couldn't read from MODIS. Terminating Script", "ERROR")
+        logging.error(e)
+        logging.info("------ EXITING SCRIPT ------")
+        sys.exit()
+    
+    try:
         ee_MODIS_collection = ee_MODIS_collection.filterDate(DEFAULTS['MODIS_MIN_MONTH'], dates.current_year_month())
         ee_MODIS_collection = rm_incomplete_months_from_ic(ee_MODIS_collection)
         MODIS_distinct_months = get_ic_distinct_months(ee_MODIS_collection)
 
     except Exception as e:
-        print_log("Couldn't read from MODIS. Terminating Script", "ERROR")
+        print_log("Couldn't remove incomplete months from MODIS collection. Terminating Script", "ERROR")
         logging.error(e)
         logging.info("------ EXITING SCRIPT ------")
         sys.exit()
@@ -434,34 +464,44 @@ def main():
     # Get list of images already saved in given path.
 
     # GEE Assets
-    if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:
-        gee_saved_assets=gee_assets.get_asset_list(ASSETS_PATH, "IMAGE")
-        gee_saved_assets_months = get_month_from_asset_name(gee_saved_assets)
-        logging.debug(f"Total images saved in GEE Asset folder: {len(gee_saved_assets_months)}")
-        if len(gee_saved_assets_months)>0:
-            logging.debug(f"first month saved: {gee_saved_assets_months[-1]}")
-            logging.debug(f"last month saved: {gee_saved_assets_months[0]}")
-    
-    # Goolge Drive
-    if EXPORT_TO in ['toDrive', 'toAssetAndDrive']:
-        gdrive_saved_assets=drive_assets.get_asset_list(
-            drive_service=service,
-            path=DRIVE_PATH, 
-            asset_type="IMAGE"
-            )
-        gdrive_saved_assets_months = get_month_from_asset_name(gdrive_saved_assets)
-        msg="Total images saved in Google Drive folder"
-        logging.debug(f"{msg}: {len(gdrive_saved_assets_months)}")
-        if len(gdrive_saved_assets_months)>0:
-            logging.debug(f"first month saved: {gdrive_saved_assets_months[-1]}")
-            logging.debug(f"last month saved: {gdrive_saved_assets_months[0]}")
+    try: 
+        if EXPORT_TO in ['toAsset', 'toAssetAndDrive']:
+            gee_saved_assets=gee_assets.get_asset_list(ASSETS_PATH, "IMAGE")
+            gee_saved_assets_months = get_month_from_asset_name(gee_saved_assets)
+            logging.debug(f"Total images saved in GEE Asset folder: {len(gee_saved_assets_months)}")
+            if len(gee_saved_assets_months)>0:
+                logging.debug(f"first month saved: {gee_saved_assets_months[-1]}")
+                logging.debug(f"last month saved: {gee_saved_assets_months[0]}")
+    except Exception as e:
+        print_log("Couldn't list images already saved to GEE Assets." , "ERROR")
+        logging.error(e)
+        logging.info("------ EXITING SCRIPT ------")
 
+
+    # Goolge Drive
+    try:
+        if EXPORT_TO in ['toDrive', 'toAssetAndDrive']:
+            gdrive_saved_assets=drive_assets.get_asset_list(
+                drive_service=service,
+                path=DRIVE_PATH, 
+                asset_type="IMAGE"
+                )
+            gdrive_saved_assets_months = get_month_from_asset_name(gdrive_saved_assets)
+            msg="Total images saved in Google Drive folder"
+            logging.debug(f"{msg}: {len(gdrive_saved_assets_months)}")
+            if len(gdrive_saved_assets_months)>0:
+                logging.debug(f"first month saved: {gdrive_saved_assets_months[-1]}")
+                logging.debug(f"last month saved: {gdrive_saved_assets_months[0]}")
+    except Exception as e:
+        print_log("Couldn't list images already saved to Google Drive" , "ERROR")
+        logging.error(e)
+        logging.info("------ EXITING SCRIPT ------")
   
     ## ------ DETERMINE MONTHS TO SAVE ---------
     logging.debug(f"--- Determining dates to save")
-    # Save images of months in MONTHS_TO_EXPORT
-    # otherwise save
+    # Save images requested through MONTHS_TO_EXPORT otherwise save
     # the last available month in MODIS
+    
     if MONTHS_TO_EXPORT:
         months_to_save=MONTHS_TO_EXPORT
     
@@ -477,7 +517,7 @@ def main():
     # Identify months that are not available 
     months_not_available = [month for month in months_to_save if month not in MODIS_distinct_months]
     if len(months_not_available) >= 1:
-        print_log(f"Months not available/complete in MODIS: {months_not_available}", "WARNING")
+        print_log(f"Months not available or complete in MODIS: {months_not_available}", "WARNING")
 
     # Check if months to save have already been saved or are not available/complete in MODIS
     # GEE Assets
@@ -528,8 +568,6 @@ def main():
         logging.info("------ EXITING SCRIPT ------")
         sys.exit()
 
-    # ee_filtered_snow_collection = ee_monthly_snow_cloud_collection
-
     ## ------ EXPORT TASKS ---------
     logging.debug(f"--- Exporting Images")
     
@@ -549,56 +587,61 @@ def main():
     for month in all_months_to_save:
         # Exit if max number of exports is reached
         if max_exports==0:
+            print_log(f'Reached limit of {DEFAULTS["MAX_EXPORTS"]} maximum exports in one run. You can increase this limit through the MAX_EXPORTS environment variable or argument', 'WARNING')
             break
         else:
             max_exports -= 1
-        
-        ee_image = ee_monthly_snow_cloud_collection.filterDate(month).first()
-        image_ym = ee_image.get('system:time_start').getInfo()
-        image_name = 'MOD10A1_SCI_CCI_' + image_ym
+        try:
+            ee_image = ee_monthly_snow_cloud_collection.filterDate(month).first()
+            image_ym = ee_image.get('system:time_start').getInfo()
+            image_name = 'MOD10A1_SCI_CCI_' + image_ym
 
-        # GEE Assets
-        if (EXPORT_TO in ['toAsset', 'toAssetAndDrive'] and 
-            month in gee_months_to_save):
-            print_log(f"-Exporting image to GEE Asset: {image_name}", "INFO")
-            task = ee.batch.Export.image.toAsset(**{
-                'image': ee_image,
-                'description': image_name,
-                'assetId': pathlib.Path(ASSETS_PATH, image_name).as_posix(),
-                'scale': 500,
-                'region': ee_territorio_nacional.geometry(),
-            })
-            export_tasks.append({"task": task,
-                                 "target": "GEE Asset",
-                                 "image": image_name
-                                 })
+            # GEE Assets
+            if (EXPORT_TO in ['toAsset', 'toAssetAndDrive'] and 
+                month in gee_months_to_save):
+                print_log(f"-Exporting image to GEE Asset: {image_name}", "INFO")
+                task = ee.batch.Export.image.toAsset(**{
+                    'image': ee_image,
+                    'description': image_name,
+                    'assetId': pathlib.Path(ASSETS_PATH, image_name).as_posix(),
+                    'scale': 500,
+                    'region': ee_territorio_nacional.geometry(),
+                })
+                export_tasks.append({"task": task,
+                                    "target": "GEE Asset",
+                                    "image": image_name
+                                    })
 
-        # Google Drive
-        if (EXPORT_TO in ['toDrive', 'toAssetAndDrive'] and
-            month in gdrive_months_to_save):
-            print_log(f"-Exporting image to Google Drive: {image_name}", "INFO")
-            # NOTE: Be aware, if there are multiple folders with he same name
-            # this function might not export to the correct one!!!
-            task = ee.batch.Export.image.toDrive(**{
-                'image': ee_image,
-                'description': image_name,
-                'scale': 500,
-                'region': ee_territorio_nacional.geometry(),
-                'maxPixels': 1E8,
-                'folder': pathlib.Path(DRIVE_PATH).as_posix(),
-            })
-            export_tasks.append({"task": task,
-                                 "target": "Google Drive",
-                                 "image": image_name
-                                 })
+            # Google Drive
+            if (EXPORT_TO in ['toDrive', 'toAssetAndDrive'] and
+                month in gdrive_months_to_save):
+                print_log(f"-Exporting image to Google Drive: {image_name}", "INFO")
+                # NOTE: Be aware, if there are multiple folders with he same name
+                # this function might not export to the correct one!!!
+                task = ee.batch.Export.image.toDrive(**{
+                    'image': ee_image,
+                    'description': image_name,
+                    'scale': 500,
+                    'region': ee_territorio_nacional.geometry(),
+                    'maxPixels': 1E8,
+                    'folder': pathlib.Path(DRIVE_PATH).as_posix(),
+                })
+                export_tasks.append({"task": task,
+                                    "target": "Google Drive",
+                                    "image": image_name
+                                    })
+        except Exception as e:
+            print_log(f"couldn't create 1 or more export task for image: {image_name}", "ERROR")
+            logging.error(e)
 
     # Start tasks 
     for task in export_tasks:
         try:
             task['task'].start()
-        except:
+        except Exception as e:
             msg=f"Export Task failed for {task['target']} {task['image']}: {task['task']}"
             print_log(msg, "ERROR")
+            logging.error(e)
     
     print_log("--- Checking Export Status...", "INFO")
     # Check exports until all are complete or fail
