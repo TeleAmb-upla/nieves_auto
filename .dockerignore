@@ -28,5 +28,6 @@
 **/*.log
 **/Experiments/
 **/console_examples
+console_examples
 LICENSE
 README.md
