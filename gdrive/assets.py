@@ -43,7 +43,7 @@ def get_folder_id(drive_service, path:str, parent:str=None):
             page_token= results.get('nextPageToken', None)
             if page_token is None:
                 break
-        if len(items)>1 and parent==None:
+        if len(items)>1 and parent is None:
             # This should only happen when searching for folders in root.
             # because we haven't found a way to specify root as parent
             items = [item for item in items if "parents" not in item.keys()]

@@ -18,7 +18,7 @@ def check_valid_date(date_string:str)->bool:
         logging.warning(e)
         return False
     
-def check_valid_date_list(date_list: list)->bool:
+def check_valid_date_list(date_list: list|str)->bool:
     '''
     Checks if a list of strings only has valid date formats. Returns false if at least one of of the items in the list has an invalid format. 
 
@@ -28,6 +28,8 @@ def check_valid_date_list(date_list: list)->bool:
     Returns: 
         Returns TRUE if all the stings in the list are valid dates
     '''
+    if type(date_list) is str:
+        date_list=[date_list]
     try: 
         return all(map(check_valid_date, date_list))
     except Exception as e:

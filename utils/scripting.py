@@ -1,8 +1,9 @@
 import os
 import logging
+from typing import Optional 
 
-def set_script_config_var (var:str, arg_value:str=None, default=None, 
-                           required:bool=False, parse:str=None):
+def set_script_config_var (var:str, arg_value:Optional[str]=None, default:Optional[str]=None, 
+                           required:bool=False, parse:Optional[str]=None):
     '''
     Sets a global variable from a given argument, an Environmental Variable or using a default value.
     
@@ -40,7 +41,7 @@ def set_script_config_var (var:str, arg_value:str=None, default=None,
             raise Exception(f'Could not parse value as: {parse}')
 
     # Error out if var is required but value is None
-    if required==True and value==None:
+    if required==True and value is None:
         raise Exception(f"{var} is required but no value was set")
     
     # Save value assignment to log file

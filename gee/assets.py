@@ -56,7 +56,7 @@ def get_asset_list(parent:str, asset_type=None, recursive:bool=False):
             if recursive:
                 asset_list.extend(get_asset_list(child_id))
         else:
-            if child_type in asset_type or child_type == None:
+            if child_type in asset_type or child_type is None:
                 asset_list.append(child_id)
     return asset_list
 
@@ -105,5 +105,5 @@ def check_folder_exists(path):
 def main():
     pass
 
-if '__name__'=='__main__':
+if __name__=='__main__':
     main()
