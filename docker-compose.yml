@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   nieve_auto:
-    image: ericklinares/gee-nieve-sequia-auto:2.0.0
+    image: ericklinares/gee-nieve-sequia-auto:2.0.1
     deploy:
       replicas: 1 
       resources: 
@@ -10,18 +10,17 @@ services:
           cpus: '1'
           memory: '2G'
     environment:
-      - SERVICE_USER=odes-nieve@ee-proyectosequiateleamb.iam.gserviceaccount.com
+      - SERVICE_USER=user@dummy_project.iam.gserviceaccount.com
       - SERVICE_CREDENTIALS_FILE=credentials
-      # - MONTHS_TO_EXPORT='2022-11-01, 2022-10-01, 2022-09-01'
-      # - REGIONS_ASSET_PATH = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
-      - EXPORT_TO = 'toAssetAndDrive'
-      - ASSETS_PATH = 'projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci'
-      - DRIVE_PATH = 'raster_sci_cci'
+      - REGIONS_ASSET_PATH = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
+      - EXPORT_TO='toAssetAndDrive'
+      - ASSETS_PATH='projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci'
+      - DRIVE_PATH='raster_sci_cci'
     
     secrets:
       - credentials
     
 secrets:
   credentials:
-    file: credentials/ee-proyectosequiateleamb-22dbf24d5c96.json
+    file: credentials/dummy_credentials.json
     
