@@ -22,7 +22,7 @@ CCI: Cloud Cover Index
 
 ## Python script and Docker container
 
-The export automation script is designed so it can be executed as a normal python script. A Dockerfile and its respective image are also provided as an alternative to run the script automatically every day at 3:00 am (local time zone of the server).
+The export automation script is designed so it can be executed as a normal Python script. A Dockerfile and its respective image are also provided as an alternative to run the script automatically every day at 3:00 am (local time zone of the server).
 
 The main script "nieve_sequia_auto.py" can be executed directly in the console by providing the required information as arguments.
 
@@ -84,4 +84,4 @@ Use the following environment variables for Docker containers:
 
 ## Important Notice
 
-:warning: As of February 2023, MODIS is no longer providing the required images to calculate the SCI and CCI due to faulty sensors. The script will be updated in the near future to use VIIRS images instead.
+:warning: As of February 2023, MODIS is no longer providing the required images to calculate the SCI and CCI due to faulty sensors. The script will be updated to use VIIRS images instead.
