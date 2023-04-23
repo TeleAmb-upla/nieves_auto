@@ -81,3 +81,7 @@ Use the following environment variables for Docker containers:
 - [Google Earth Engine Python API](https://developers.google.com/earth-engine/python_install)
 - [Google service accounts](https://cloud.google.com/iam/docs/service-accounts)
 - [Google service account credentials](https://cloud.google.com/iam/docs/creating-managing-service-account-keys)
+
+## Important Notice
+
+:warning: As of February 2023, MODIS is no longer providing the required images to calculate the SCI and CCI due to faulty sensors. The script will be updated in the near future to use VIIRS images instead.
