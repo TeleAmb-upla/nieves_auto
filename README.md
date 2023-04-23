@@ -34,7 +34,9 @@ Or run as a docker container. The docker image is pre-configured to run the scri
 
 The script requires a JSON file with the Google service account credentials which can be provided to the container through a bind mount, a Docker config or a Docker secret. Preferably use a Docker Secret for security reasons.
 
-`$ docker run -d -name nieve -e SERVICE_USER=user@project.iam.gserviceaccount.com -e SERVICE_CREDENTIALS_FILE=/credentials.json -v /path/to/credentials.json:/credentials.json -e REGIONS_ASSET_PATH='path/to/featurecollection' -e EXPORT_TO=toAsset -e ASSET_PATH='path/to/save/assets' ericklinares/gee-nieve-sequia-auto:latest`
+```
+$ docker run -d -name nieve -e SERVICE_USER=user@project.iam.gserviceaccount.com -e SERVICE_CREDENTIALS_FILE=/credentials.json -v /path/to/credentials.json:/credentials.json -e REGIONS_ASSET_PATH='path/to/featurecollection' -e EXPORT_TO=toAsset -e ASSET_PATH='path/to/save/assets' ericklinares/gee-nieve-sequia-auto:latest
+```
 
 See docker-compose.yml for an example of how to deploy using compose files.
 
