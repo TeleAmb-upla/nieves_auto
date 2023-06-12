@@ -84,4 +84,4 @@ Use the following environment variables for Docker containers:
 
 ## Important Notice
 
-:warning: As of February 2023, MODIS is no longer providing the required images to calculate the SCI and CCI due to faulty sensors. The script will be updated to use VIIRS images instead.
+:bell: Due to image availability this script has switched from using MODIS/006/MOD10A1 to MODIS/061/MOD10A1 as the primary image collection. MODIS/006/MOD10A1 is no longer being updated and the last available image is form mid February. Please refer to the official MODIS documentation for more information.

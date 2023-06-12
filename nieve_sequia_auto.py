@@ -4,7 +4,7 @@ Script to automate the calculation of SCI & CCI monthly average from the images 
 SCI: Snow Cover Index
 CCI: Cloud Cover Index
 
-This script usess the following conventions:
+This script uses the following conventions:
 - Server side variables start with ee_
 
 
@@ -147,7 +147,7 @@ def get_ic_distinct_months(collection: ee.ImageCollection) -> list:
     return distinct_months
 
 
-def snow_cloud_mask(image:ee.Image) -> ee.Image:
+def snow_cloud_mask(image: ee.Image) -> ee.Image:
     """
     Calculates SCI and CCI for a given image and returns the image with
     the new SCI, CCI bandas attached.
@@ -167,8 +167,7 @@ def snow_cloud_mask(image:ee.Image) -> ee.Image:
 
 
 def imagecollection_monthly_mean(
-    months: list, 
-    collection: ee.ImageCollection
+    months: list, collection: ee.ImageCollection
 ) -> ee.ImageCollection:
     """
     Calculates the monthly mean of an ImageCollection
@@ -379,9 +378,11 @@ def main() -> None:
     # Search for file in given path and docker secrets
     try:
         if SERVICE_CREDENTIALS_FILE and type(SERVICE_CREDENTIALS_FILE) is str:
-            SERVICE_CREDENTIALS_FILE = dockers.check_docker_secret(SERVICE_CREDENTIALS_FILE)
+            SERVICE_CREDENTIALS_FILE = dockers.check_docker_secret(
+                SERVICE_CREDENTIALS_FILE
+            )
         else:
-            raise Exception('Incorrect vartype or value is missing')
+            raise Exception("Incorrect vartype or value is missing")
     except Exception as e:
         print_log(f"SERVICE_CREDENTIALS_FILE - {e}", "ERROR")
         logging.info("------ EXITING SCRIPT ------")
@@ -403,7 +404,7 @@ def main() -> None:
         credentials = ee.ServiceAccountCredentials(
             SERVICE_USER, SERVICE_CREDENTIALS_FILE
         )
-        ee.Initialize(credentials) #type:ignore
+        ee.Initialize(credentials)  # type:ignore
         logging.debug("GEE connection successful")
     except Exception as err:
         print_log(err.args[0], "ERROR")
@@ -424,7 +425,7 @@ def main() -> None:
             logging.info("------ EXITING SCRIPT ------")
             sys.exit()
     else:
-        service=None
+        service = None
     ## ------ CHECK GEE ASSET PATH OR GOOGLE DRIVE PATH ARE VALID --------
     # GEE Assets
     if EXPORT_TO in ["toAsset", "toAssetAndDrive"]:
@@ -440,8 +441,7 @@ def main() -> None:
     if EXPORT_TO in ["toDrive", "toAssetAndDrive"]:
         try:
             if not drive_assets.check_folder_exists(
-                drive_service=service, 
-                path=DRIVE_PATH #type:ignore
+                drive_service=service, path=DRIVE_PATH  # type:ignore
             ):
                 raise Exception(f"Google Drive folder not found: {DRIVE_PATH}")
         except Exception as error:
@@ -454,7 +454,7 @@ def main() -> None:
     # Check if "DPA_regiones_nacionales" feature collection exists else stop script
     # NOTE: This is very specific to this project and might not translate to other uses.
     try:
-        if gee_assets.check_asset_exists(REGIONS_ASSET_PATH, "TABLE"): #type:ignore
+        if gee_assets.check_asset_exists(REGIONS_ASSET_PATH, "TABLE"):  # type:ignore
             ee_territorio_nacional = ee.FeatureCollection(REGIONS_ASSET_PATH)
 
     except:
@@ -469,7 +469,8 @@ def main() -> None:
     # and Check if the previous months have all the images expected for that month
     # otherwise remove the month as 'incomplete'
     try:
-        ee_MODIS_collection = ee.ImageCollection("MODIS/006/MOD10A1")
+        # ee_MODIS_collection = ee.ImageCollection("MODIS/006/MOD10A1")
+        ee_MODIS_collection = ee.ImageCollection("MODIS/061/MOD10A1")
     except Exception as e:
         print_log("Couldn't read from MODIS. Terminating Script", "ERROR")
         logging.error(e)
@@ -497,8 +498,8 @@ def main() -> None:
     # Get list of images already saved in given path.
 
     # GEE Assets
-    gee_saved_assets=[]
-    gee_saved_assets_months=[]
+    gee_saved_assets = []
+    gee_saved_assets_months = []
     try:
         if EXPORT_TO in ["toAsset", "toAssetAndDrive"]:
             if ASSETS_PATH and type(ASSETS_PATH) is str:
@@ -516,17 +517,19 @@ def main() -> None:
         logging.info("------ EXITING SCRIPT ------")
 
     # Goolge Drive
-    gdrive_saved_assets=[]
-    gdrive_saved_assets_months=[]
+    gdrive_saved_assets = []
+    gdrive_saved_assets_months = []
     try:
         if EXPORT_TO in ["toDrive", "toAssetAndDrive"]:
             gdrive_saved_assets = drive_assets.get_asset_list(
                 drive_service=service, path=DRIVE_PATH, asset_type="IMAGE"
             )
             if type(gdrive_saved_assets) is list:
-                gdrive_saved_assets_months = get_month_from_asset_name(gdrive_saved_assets)
+                gdrive_saved_assets_months = get_month_from_asset_name(
+                    gdrive_saved_assets
+                )
             else:
-                gdrive_saved_assets_months=[]
+                gdrive_saved_assets_months = []
             msg = "Total images saved in Google Drive folder"
             logging.debug(f"{msg}: {len(gdrive_saved_assets_months)}")
             if len(gdrive_saved_assets_months) > 0:
@@ -682,9 +685,11 @@ def main() -> None:
                     **{
                         "image": ee_image,
                         "description": image_name,
-                        "assetId": pathlib.Path(ASSETS_PATH, image_name).as_posix(), #type:ignore
+                        "assetId": pathlib.Path(
+                            ASSETS_PATH, image_name
+                        ).as_posix(),  # type:ignore
                         "scale": 500,
-                        "region": ee_territorio_nacional.geometry(), #type:ignore
+                        "region": ee_territorio_nacional.geometry(),  # type:ignore
                     }
                 )
                 export_tasks.append(
@@ -704,9 +709,9 @@ def main() -> None:
                         "image": ee_image,
                         "description": image_name,
                         "scale": 500,
-                        "region": ee_territorio_nacional.geometry(), #type:ignore
+                        "region": ee_territorio_nacional.geometry(),  # type:ignore
                         "maxPixels": 1e8,
-                        "folder": pathlib.Path(DRIVE_PATH).as_posix(), #type:ignore
+                        "folder": pathlib.Path(DRIVE_PATH).as_posix(),  # type:ignore
                     }
                 )
                 export_tasks.append(
