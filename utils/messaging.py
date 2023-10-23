@@ -1,10 +1,8 @@
-from math import log
 import smtplib
 from email.message import EmailMessage
 import logging
-from typing import Optional
+from typing import Optional, List
 import re
-from typing import List
 from email_validator import validate_email, EmailNotValidError
 
 
