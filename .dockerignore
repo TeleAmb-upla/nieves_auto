@@ -28,6 +28,7 @@
 **/*.log
 **/Experiments/
 **/console_examples
+**/localrun.sh
 console_examples
 LICENSE
 README.md

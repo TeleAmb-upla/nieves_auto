@@ -1,5 +1,5 @@
 # For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.10.9-slim
+FROM python:3.11.6-slim
 
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -9,14 +9,14 @@ ENV PYTHONUNBUFFERED=1
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
- cron \
- git \ 
- supervisor \
- wget \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/ \
- && mkdir -p /var/log/supervisor \
- && mkdir -p /var/log/snow
+  cron \
+  git \ 
+  supervisor \
+  wget \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/ \
+  && mkdir -p /var/log/supervisor \
+  && mkdir -p /var/log/snow
 
 
 # Install pip requirements
@@ -24,9 +24,11 @@ COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
 
+# Copy costum config files
 COPY ./configs/supervisord.conf /etc/supervisor/conf.d/
 COPY ./configs/nieves-crontab /etc/cron.d/
 
+# Copy app
 WORKDIR /app
 COPY . /app
 

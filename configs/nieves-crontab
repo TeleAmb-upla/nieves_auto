@@ -1,2 +1,1 @@
 0 12 * * * root . /app/set_env.sh && /usr/local/bin/python -u /app/nieve_sequia_auto.py >> /var/log/snow/snow.log
-
