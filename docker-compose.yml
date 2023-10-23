@@ -11,16 +11,26 @@ services:
           memory: '2G'
     environment:
       - SERVICE_USER=user@dummy_project.iam.gserviceaccount.com
-      - SERVICE_CREDENTIALS_FILE=credentials
-      - REGIONS_ASSET_PATH = 'users/proyectosequiateleamb/Regiones/DPA_regiones_nacional'
-      - EXPORT_TO='toAssetAndDrive'
-      - ASSETS_PATH='projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci'
-      - DRIVE_PATH='raster_sci_cci'
+      - SERVICE_CREDENTIALS_FILE=/run/secrets/credentials
+      - EXPORT_TO=toAssetAndDrive
+      - ASSETS_PATH=projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci
+      - DRIVE_PATH=raster_sci_cci
+      - REGIONS_ASSET_PATH=users/proyectosequiateleamb/Regiones/DPA_regiones_nacional
+      - ENABLE_EMAIL='True'
+      - SMTP_SERVER=mail.dummyhost.com
+      - SMTP_PORT=587
+      - SMTP_USERNAME=email.user
+      - SMTP_PASSWORD_FILE=/run/secrets/smtp_password
+      - FROM_ADDRESS=service@dummyhost.com
+      - TO_ADDRESS=user@dummyhost2.com
     
     secrets:
       - credentials
+      - smtp_password
     
 secrets:
   credentials:
     file: credentials/dummy_credentials.json
+  smtp_password: 
+    file: credentials/smtp_password.txt
     
