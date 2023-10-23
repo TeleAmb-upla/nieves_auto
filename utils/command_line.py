@@ -2,9 +2,6 @@ import argparse
 import logging
 
 
-import argparse
-
-
 def set_argument_parser() -> argparse.ArgumentParser:
     """
     Creates an argument parser for the command line interface.
