@@ -9,12 +9,10 @@ This script uses the following conventions:
 
 
 """
+# cSpell:word googleapiclient
 
 # libraries
-import pprint
 from typing import final
-import ee
-import geemap
 from datetime import datetime, timedelta, date
 import pathlib
 from time import sleep
@@ -22,195 +20,26 @@ import sys
 import logging
 import json
 
+# Google Earth Engine
+import ee
+
 # Google API
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 # Custom libraries
-from utils.logs import print_log, log_level_setup
-from utils.command_line import set_argument_parser
-from utils import dates, dockers, scripting, messaging
-from gee import dates as gee_dates, assets as gee_assets
+from utilities.logs import print_log, log_level_setup
+from utilities.command_line import set_argument_parser
+from utilities import dates, dockers, scripting, messaging
+from gee import (
+    snow,
+    dates as gee_dates,
+    assets as gee_assets,
+    imagecollection as gee_imagecollection,
+    image as gee_image,
+)
 from gdrive import assets as drive_assets
-
-
-def rm_incomplete_months_from_ic(
-    collection: ee.ImageCollection,
-    last_expected_img_dt: datetime = dates.prev_month_last_date(),
-) -> ee.ImageCollection:
-    """
-    Removes last months from an image collection if they don't have all the images for the month. Meaning, it is \'incomplete\'.
-    The month is considered incomplete if the image of the last day of the month is not present.
-
-    Args:
-        collection: an Image collection
-        Last_expected_img_dt: date of the last expected image in a collection.
-
-    Returns: an ImageCollection
-    """
-    try:
-        # Get the date of the last image in the collection
-        last_image_dt = ee.Date(
-            collection.sort(prop="system:time_start", opt_ascending=False)
-            .first()
-            .get("system:time_start")
-        ).getInfo()
-    except Exception as e:
-        logging.error("Couldn't get image date from gee")
-        raise
-    try:
-        # Copy date of last image from server
-        last_image_dt = gee_dates.format_ee_timestamp(last_image_dt).date()
-    except Exception as e:
-        logging.error("Couldn't format image date from gee")
-
-    try:
-        # Remove the last month if last image != last expected image
-        if last_image_dt != last_expected_img_dt:
-            incomplete_month = (
-                f"{last_expected_img_dt.year}-{last_expected_img_dt.month}"
-            )
-            msg = f"Removing Incomplete month {incomplete_month} from collection..."
-            print(msg)
-            logging.info(msg)
-            logging.debug(f"\t Last Image Expected: {last_expected_img_dt}")
-            logging.debug(f"\t Last Image found: {last_image_dt}")
-            new_end_date = last_expected_img_dt.replace(day=1)
-            new_end_date_ym = f"{new_end_date.year}-{new_end_date.month}"
-            collection = collection.filterDate(
-                scripting.DEFAULT_CONFIG["MODIS_MIN_MONTH"], new_end_date_ym
-            )
-            new_last_month = new_end_date - timedelta(days=1)
-            logging.debug(
-                f"New last month is: {new_last_month.year}-{new_last_month.month}"
-            )
-            logging.debug(f"\t New Last Image Expected: {new_last_month}")
-            # Recurrent call in case more incomplete months are present
-            collection = rm_incomplete_months_from_ic(
-                collection=collection, last_expected_img_dt=new_last_month
-            )
-        else:
-            # Return new image collection if there are no incomplete months to remove
-            logging.info(
-                f"Last complete month in collection: {last_expected_img_dt.year}-{last_expected_img_dt.month}"
-            )
-        return collection
-    except Exception as e:
-        logging.error(
-            "Couldn't remove images of incomplete months from image collection."
-        )
-        logging.error(e)
-        raise
-
-
-def get_ic_distinct_months(collection: ee.ImageCollection) -> list:
-    """
-    Returns a list of distinct months in an image collection.
-    Distinct months are represented by the first day of the month.
-    For example 2000-01-01 represents January, 2000
-    """
-
-    def get_dates(image: ee.Image):
-        return ee.Feature(None, {"date": image.date().format("YYYY-MM-dd")})
-
-    ee_dates = collection.map(get_dates).distinct("date").aggregate_array("date")
-    collection_dates = ee_dates.getInfo()
-    logging.debug(f"Total images in collection: {len(collection_dates)}")
-
-    # Filter dates that are not first day of the month
-    distinct_months = []
-    for image_date in collection_dates:
-        if image_date.endswith("-01"):
-            distinct_months.append(image_date)
-
-    distinct_months.sort(reverse=True)
-    logging.debug(f"Distinct months in collection: {len(distinct_months)}")
-    logging.debug(f"first month: {distinct_months[len(distinct_months)-1]}")
-    logging.debug(f"last month: {distinct_months[0]}")
-
-    return distinct_months
-
-
-def snow_cloud_mask(image: ee.Image) -> ee.Image:
-    """
-    Calculates SCI and CCI for a given image and returns the image with
-    the new SCI, CCI bands attached.
-    Sets NDSI threshold at 40
-    Sets Snow_Albedo_Daily_Tile_Class == 150
-
-    """
-    NDSI_THRESHOLD = 40
-    ee_snow = (
-        image.select("NDSI_Snow_Cover").gte(NDSI_THRESHOLD).multiply(100).rename("SCI")
-    )
-    ee_cloud = (
-        image.select("Snow_Albedo_Daily_Tile_Class").eq(150).multiply(100).rename("CCI")
-    )
-
-    return image.addBands(ee_snow).addBands(ee_cloud)
-
-
-def imagecollection_monthly_mean(
-    months: list, collection: ee.ImageCollection
-) -> ee.ImageCollection:
-    """
-    Calculates the monthly mean of an ImageCollection
-
-    Arguments:
-        months: list of months in format YYYY-MM-DD
-        collection: ImageCollection with images from one or more months
-
-    """
-    # if months is not a list convert to list
-    if type(months) == list:
-        pass
-    elif type(months) == str:
-        # if string check if it's a valid date and convert to list
-        # try:
-        #     format = "%Y-%m-%d"
-        #     res = bool(datetime.strptime(months, format))
-        # except ValueError:
-        #     res = False
-        months = [months]
-
-    ee_image_list = ee.List([])
-    for month in months:
-        # target month start date
-        ee_target_ym = ee.Date(month)
-        ee_target_month = ee_target_ym.get("month")
-        ee_target_year = ee_target_ym.get("year")
-        # target month end date
-        ee_post_target_ym = ee_target_ym.advance(1, "month")
-        logging.debug(
-            f"Processing: {gee_dates.format_ee_timestamp(ee_target_ym.getInfo()).date()} - {gee_dates.format_ee_timestamp(ee_post_target_ym.getInfo()).date()}"
-        )
-
-        # Calculate mean
-        ee_image = collection.filterDate(ee_target_ym, ee_post_target_ym).mean()
-        # Add
-        ee_image = ee_image.set("month", ee_target_month)
-        ee_image = ee_image.set("year", ee_target_year)
-        ee_image = ee_image.set("system:time_start", ee_target_ym.format("YYYY-MM"))
-
-        # add to list of images
-        ee_image_list = ee_image_list.add(ee_image)
-
-    # Convert list to image collection
-    ee_image_collection = ee.ImageCollection(ee_image_list)
-    return ee_image_collection
-
-
-def get_month_from_asset_name(assets_list: list) -> list:
-    # Get list of months from assets names and sort
-    # This assumes all images found in path end with YYYY-MM
-    # TODO: Need to exclude asset or error out if asset_name doesn't end with YYYY-MM
-    if assets_list and type(assets_list) is list:
-        assets_months = [date[-7:] + "-01" for date in assets_list]
-        assets_months.sort(reverse=True)
-    else:
-        assets_months = []
-    return assets_months
 
 
 def main() -> None:
@@ -279,6 +108,7 @@ def main() -> None:
     email_service = messaging.init_email_service(CONFIG)
 
     ## ------ GEE CONNECTION ---------
+    # TODO: Need to verify connections get closed after script finishes
     logging.debug("--- Connecting to GEE")
     # Connect to GEE using service account for automation
 
@@ -299,6 +129,7 @@ def main() -> None:
         sys.exit()
 
     ## ------ GOOGLE DRIVE CONNECTION --------
+    # TODO: Need to verify connections get closed after script finishes
     if CONFIG["EXPORT_TO"] in ["toDrive", "toAssetAndDrive"]:
         logging.debug("--- Connecting to Google Drive")
         try:
@@ -306,7 +137,11 @@ def main() -> None:
             drive_credentials = service_account.Credentials.from_service_account_file(
                 CONFIG["SERVICE_CREDENTIALS_FILE"]
             )
-            service = build("drive", "v3", credentials=drive_credentials)
+            # disabling cache to avoid error:
+            # "file_cache is only supported with oauth2client<4.0.0"
+            service = build(
+                "drive", "v3", credentials=drive_credentials, cache_discovery=False
+            )
         except HttpError as error:
             print_log(error.args[0], "ERROR")
             logging.info("------ EXITING SCRIPT ------")
@@ -346,7 +181,7 @@ def main() -> None:
         if gee_assets.check_asset_exists(
             CONFIG["REGIONS_ASSET_PATH"], "TABLE"
         ):  # type:ignore
-            ee_territorio_nacional = ee.FeatureCollection(CONFIG["REGIONS_ASSET_PATH"])
+            ee_regions = ee.FeatureCollection(CONFIG["REGIONS_ASSET_PATH"])
 
     except:
         print_log("Could not read Regions. Terminating Script", "ERROR")
@@ -372,8 +207,12 @@ def main() -> None:
         ee_MODIS_collection = ee_MODIS_collection.filterDate(
             CONFIG["MODIS_MIN_MONTH"], dates.current_year_month()
         )
-        ee_MODIS_collection = rm_incomplete_months_from_ic(ee_MODIS_collection)
-        MODIS_distinct_months = get_ic_distinct_months(ee_MODIS_collection)
+        ee_MODIS_collection = gee_imagecollection.ic_rm_incomplete_months(
+            ee_MODIS_collection
+        )
+        MODIS_distinct_months = gee_imagecollection.ic_get_distinct_months(
+            ee_MODIS_collection
+        )
 
     except Exception as e:
         print_log(
@@ -397,7 +236,7 @@ def main() -> None:
                 gee_saved_assets = gee_assets.get_asset_list(
                     CONFIG["ASSETS_PATH"], "IMAGE"
                 )
-            gee_saved_assets_months = get_month_from_asset_name(gee_saved_assets)
+            gee_saved_assets_months = gee_assets.get_trailing_ymd(gee_saved_assets)
             logging.debug(
                 f"Total images saved in GEE Asset folder: {len(gee_saved_assets_months)}"
             )
@@ -418,7 +257,7 @@ def main() -> None:
                 drive_service=service, path=CONFIG["DRIVE_PATH"], asset_type="IMAGE"
             )
             if type(gdrive_saved_assets) is list:
-                gdrive_saved_assets_months = get_month_from_asset_name(
+                gdrive_saved_assets_months = gee_assets.get_trailing_ymd(
                     gdrive_saved_assets
                 )
             else:
@@ -530,14 +369,14 @@ def main() -> None:
 
     try:
         # Calculate and select snow and cloud bands
-        ee_snow_cloud_collection = ee_MODIS_collection.map(snow_cloud_mask).select(
+        ee_snow_cloud_collection = ee_MODIS_collection.map(snow.snow_cloud_mask).select(
             "SCI", "CCI"
         )
 
         # Calculate mean per month
         # Only calculating it for the months that will be saved.
-        ee_monthly_snow_cloud_collection = imagecollection_monthly_mean(
-            all_months_to_save, ee_snow_cloud_collection
+        ee_monthly_snow_cloud_collection = gee_imagecollection.ic_monthly_mean(
+            months=all_months_to_save, imagecollection=ee_snow_cloud_collection
         )
 
     except Exception as e:
@@ -568,6 +407,7 @@ def main() -> None:
     # limiting in case something goes wrong.
     max_exports = CONFIG["MAX_EXPORTS"]
     export_tasks = []
+    image_name = ""
     # Start one export task per image per export target (gee, drive)
     for month in all_months_to_save:
         # Exit if max number of exports is reached
@@ -581,7 +421,7 @@ def main() -> None:
             max_exports -= 1
         try:
             ee_image = ee_monthly_snow_cloud_collection.filterDate(month).first()
-            image_ym = ee_image.get("system:time_start").getInfo()
+            image_ym = ee_image.get("system:time_start").getInfo()  # type:ignore
             image_name = "MOD10A1_SCI_CCI_" + image_ym
 
             # GEE Assets
@@ -598,7 +438,7 @@ def main() -> None:
                             CONFIG["ASSETS_PATH"], image_name
                         ).as_posix(),  # type:ignore
                         "scale": 500,
-                        "region": ee_territorio_nacional.geometry(),  # type:ignore
+                        "region": ee_regions.geometry(),  # type:ignore
                     }
                 )
                 export_tasks.append(
@@ -618,7 +458,7 @@ def main() -> None:
                         "image": ee_image,
                         "description": image_name,
                         "scale": 500,
-                        "region": ee_territorio_nacional.geometry(),  # type:ignore
+                        "region": ee_regions.geometry(),  # type:ignore
                         "maxPixels": 1e8,
                         "folder": pathlib.Path(
                             CONFIG["DRIVE_PATH"]
