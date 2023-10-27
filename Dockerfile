@@ -20,7 +20,7 @@ FROM python:3.11.6-slim-bookworm as runtime
 ## Install system dependencies
 # using supervisor to run cron in the background as service
 RUN apt-get update && apt-get install -y \
-    #   cron \
+    cron \
     #   git \ 
     supervisor \
     wget \

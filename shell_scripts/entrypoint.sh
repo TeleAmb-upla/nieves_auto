@@ -16,9 +16,9 @@ if [[ "${SNOW_SCHEDULER,,}" =~ ^(yes|true|1)$ ]]; then
     source /app/shell_scripts/export_env.sh
 
     # Create a cronjob to run the python script named snow_ipa.py
-    source /app/shell_scrpts/create_cronjob.sh
+    source /app/shell_scripts/create_cronjob.sh
 
-    # Initiationg supervisord to manage cron as a service (default config + conf.d)
+    # Initiating supervisord to manage cron as a service (default config + conf.d)
     /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 else
