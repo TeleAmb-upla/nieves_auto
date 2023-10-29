@@ -237,7 +237,7 @@ def send_email(server: EmailSender, message, start_time, end_time):
     """
     Send an email to the user.
     """
-    subject = "Snow Automation Script"
+    subject = "Snow Image Processing Automation"
     text, html = build_email_message(message, start_time, end_time)
     server.send_email(
         subject=subject,

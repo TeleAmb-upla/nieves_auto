@@ -1,8 +1,8 @@
-# Google Earth Engine SCI and CCI Image Export and automation
+# Google Earth Engine SCI and CCI Image Processing Automation
 
 ## Overview
 
-The project's main purpose is to provide a script to calculate and export images with the monthly average of "Snow Cover Index (SCI)" and "Cloud Cover Index (CCI)" using MODIS images in Google Earth Engine (GEE). The process uses a Google service account and exports the resulting images to a GEE Assets folder, a Google Drive folder, or both.
+The project's main purpose is to provide a script to process and export images with the monthly average of "Snow Cover Index (SCI)" and "Cloud Cover Index (CCI)" using MODIS images in Google Earth Engine (GEE). The process uses a Google service account and exports the resulting images to a GEE Assets folder, a Google Drive folder, or both.
 
 The project also provides a Dockerfile and an example Compose file that can be used to automate the monthly export of images using Dockers.
 You can find the latest version of the docker image in [Docker Hub](https://hub.docker.com/r/ericklinares/gee-nieve-sequia-auto).
