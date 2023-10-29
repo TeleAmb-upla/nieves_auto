@@ -22,7 +22,7 @@ services:
       - SNOW_SMTP_USERNAME=email.user
       - SNOW_SMTP_PASSWORD_FILE=/run/secrets/smtp_password
       - SNOW_FROM_ADDRESS=service@dummyhost.com
-      - SNOW_TO_ADDRESS=user@dummyhost2.com
+      - SNOW_TO_ADDRESS="user@dummyhost2.com;user2@dummyhost2.com"
       - SNOW_LOG_LEVEL=INFO
       - SNOW_SCHEDULER=True
       - SNOW_CRON='0 0 * * *'
