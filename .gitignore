@@ -4,3 +4,4 @@
 **/*.debug.yml
 **/*.log
 **/Experiments
+localrun.sh
