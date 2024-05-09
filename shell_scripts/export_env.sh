@@ -10,13 +10,22 @@ if [ -f /app/set_env.sh ]; then
 fi
 
 # create /app/set_env.sh and add an export for PATH
-echo 'export PATH="/app/.venv/bin:$PATH"' >> /app/shell_scripts/set_env.sh
+echo 'export PATH="/app/.venv/bin:$PATH"' >> /app/set_env.sh
 
 # Loop through all environment variables and export each variable that starts with SNOW_ or PYTHON to set_env.sh
 for var in $(compgen -e)
 do
-  if [[ $var == SNOW_* || $var == PYTHON_* ]]; then
-    echo "export $var=${!var}" >> /app/set_env.sh;
+  if [[ $var == SNOW_* || $var == PYTHON* ]]; then
+    value=${!var}
+    # replace all ";" with "," in the value
+    if [[ $value == *";"* ]]; then
+      value=${value//;/,}
+      # if value is not in quotes, add quotes
+      if [[ $value != \"*\" ]]; then
+        value=\"$value\"
+      fi
+    fi
+    echo "export $var=$value" >> /app/set_env.sh;
   fi
 done
 

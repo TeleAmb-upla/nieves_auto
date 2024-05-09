@@ -85,7 +85,7 @@ The script accepts the following arguments:
 
 **--from-address (Optional)**: Email address to use as sender. Use the environment variable 'SNOW_FROM_ADDRESS' for the Docker container.
 
-**--to-address (Optional)**: Email addresses to use as recipients. Accepts one or more email address separated by ',' or ';'. Use the environment variable 'SNOW_TO_ADDRESS' for the Docker container.
+**--to-address (Optional)**: Email addresses to use as recipients. Accepts one or more email address separated by ',' or ';'. Multiple emails need to be enclosed in single or double quotes. e.g "user@email.com;user2@email.com". Use the environment variable 'SNOW_TO_ADDRESS' for the Docker container.
 
 ## Docker container automatic scheduled execution:
 
