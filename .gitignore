@@ -5,3 +5,5 @@
 **/*.log
 **/Experiments
 localrun.sh
+localrun_standard.sh
+docker-compose-home.yml
