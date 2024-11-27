@@ -32,11 +32,8 @@ def check_valid_date_list(date_list: list | str) -> bool:
     """
     if type(date_list) is str:
         date_list = [date_list]
-    try:
-        return all(map(check_valid_date, date_list))
-    except Exception as e:
-        logging.warning(e)
-        return False
+
+    return all(map(check_valid_date, date_list))
 
 
 def current_year_month() -> str:
@@ -47,7 +44,7 @@ def current_year_month() -> str:
     return str(datetime.today().year) + "-" + str(datetime.today().month)
 
 
-def prev_month_last_date() -> datetime:
+def prev_month_last_date() -> date:
     """
     Returns the last day of the previous month relative to the current date
     Current date is taken from datetime.today()
@@ -56,11 +53,3 @@ def prev_month_last_date() -> datetime:
         Returns a datetime.date object
     """
     return datetime.today().date().replace(day=1) - timedelta(days=1)
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    pass
