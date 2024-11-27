@@ -1,5 +1,4 @@
 import argparse
-import logging
 
 
 def set_argument_parser() -> argparse.ArgumentParser:
@@ -133,11 +132,3 @@ def set_argument_parser() -> argparse.ArgumentParser:
     )
 
     return parser
-
-
-def main() -> None:
-    pass
-
-
-if __name__ == "__main__":
-    main()
