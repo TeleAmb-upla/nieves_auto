@@ -1,7 +1,12 @@
 import os
+import sys
 import logging
-from typing import Optional
 import pprint
+from typing import Optional
+from datetime import datetime
+
+from .messaging import EmailSender
+from .logs import print_log
 
 # from command_line import set_argument_parser
 
@@ -34,53 +39,59 @@ DEFAULT_CONFIG = {
 
 PRIVATE_CONFIGS = ["SMTP_PASSWORD"]
 
+REQUIRED_CONFIGS = ["SERVICE_CREDENTIALS_FILE", "REGIONS_ASSET_PATH"]
 
-def init_config(DEFAULT_CONFIG, cmd_args=None):
+REQUIRED_EMAIL_CONFIGS = ["SMTP_SERVER", "SMTP_PORT", "FROM_ADDRESS", "TO_ADDRESS"]
+
+
+def init_config(
+    config: dict, cmd_args: dict | None = None, env_prefix: str = "SNOW"
+) -> dict:
     """
     Initializes a configuration dictionary with default values.
     If environment variables are set for any of the keys, those values will be used instead.
     If cmd_args is provided, any keys in the configuration that match a key in cmd_args (case-insensitive) will be updated with the corresponding value from cmd_args.
 
     Args:
-        DEFAULT_CONFIG (dict): A dictionary containing default configuration values.
+        config (dict): A dictionary containing default configuration values.
         cmd_args (dict, optional): A dictionary containing command-line arguments. Defaults to None.
 
     Returns:
         dict: A dictionary containing the final configuration values.
     """
-    config = {}
+    target_config = {}
 
     # Replace default values with environment variables
-    for key in DEFAULT_CONFIG:
-        config[key] = DEFAULT_CONFIG[key]
-        env_key = f"SNOW_{key}"
+    for key in config:
+        target_config[key] = config[key]
+        env_key = f"{env_prefix}_{key}"
         env_value = os.environ.get(env_key, None)
         # Strip quotes from Environment Variables
         env_value = env_value.strip(" \"'") if env_value else None
         if env_value:
-            config[key] = env_value
+            target_config[key] = env_value
 
     # Replace values with command-line arguments
     if cmd_args:
-        for key in config:
+        for key in target_config:
             try:
                 cmd_value = cmd_args[key.lower()]
             except KeyError:
                 continue
             if cmd_value:
-                config[key] = cmd_value
+                target_config[key] = cmd_value
 
     # Parse list values from comma-separated strings if key ends with "_LIST"
-    for key in config:
-        if key.endswith("_LIST") and config[key] is not None:
+    for key in target_config:
+        if key.endswith("_LIST") and target_config[key] is not None:
             try:
-                config[key] = csv_to_list(config[key])
+                target_config[key] = csv_to_list(target_config[key])
             except Exception as e:
                 logging.error(f"Error parsing {key}: {e}")
                 raise
 
     # Show final value in log
-    return config
+    return target_config
 
 
 def csv_to_list(csv_string: str) -> list:
@@ -183,10 +194,62 @@ def print_config(data: dict, keys_to_mask: list = []) -> str:
     return pprint.pformat(masked_data, width=1)
 
 
-def main():
-    # test_set_config()
-    pass
+def get_email_template(template_path: str, default_template: str) -> str:
+    try:
+        with open(template_path) as file:
+            return file.read()
+    except FileNotFoundError:
+        return default_template
 
 
-if __name__ == "__main__":
-    main()
+def terminate_error(
+    err_message: str,
+    script_start_time: str,
+    exception_traceback: Exception | None = None,
+    email_service: EmailSender | None = None,
+    exit_script: bool = False,
+) -> None:
+    """
+    Terminate the script execution due to an error and writes to log file.
+
+    If an EmailSender object is provided, an email with the error details will be sent to
+    the emails provided to the object.
+
+    Args:
+        err_message (str): The error message describing the cause of the termination.
+        script_start_time (str): The start time of the script execution.
+        exception_traceback (Exception | None): An optional Exception object containing the traceback of the error. Defaults to None.,
+        email_service (EmailSender | None): An optional EmailSender object for sending error emails. Defaults to None.
+
+    Returns:
+        None
+
+    Raises:
+        SystemExit: This function terminates the script execution using sys.exit().
+
+    """
+    script_end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    # Email
+    if email_service is not None:
+        template_path = "./templates/error_email_template"
+        default_template = "Error Message: [error_message]"
+        template = get_email_template(template_path, default_template)
+
+        # Update template
+        message = template.replace("[error_message]", err_message)
+        message = message.replace("[start_time]", script_start_time)
+        message = message.replace("[end_time]", script_end_time)
+
+        subject = "Snow Image Processing Automation"
+        email_service.send_email(subject=subject, body=message)
+
+    # Logging
+    if exception_traceback:
+        logging.error(str(exception_traceback))
+    print_log(err_message, "ERROR")
+    logging.info("------ EXITING SCRIPT ------")
+
+    # terminate
+    if exit_script:
+        sys.exit()
