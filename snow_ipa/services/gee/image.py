@@ -1,4 +1,7 @@
 import ee
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def get_date_ymd(image: ee.Image):
@@ -12,11 +15,3 @@ def get_date_ymd(image: ee.Image):
         ee.Feature: A feature with the date of the given image.
     """
     return ee.Feature(None, {"date": image.date().format("YYYY-MM-dd")})  # type: ignore
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

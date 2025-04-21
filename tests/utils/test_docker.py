@@ -1,7 +1,7 @@
 import pytest
 import pathlib
 from unittest import mock
-from snow_ipa.utilities.dockers import check_docker_secret, DOCKER_SECRET_LINUX_PATH
+from snow_ipa.utils.dockers import check_docker_secret, DOCKER_SECRET_LINUX_PATH
 
 
 class TestCheckDockerSecret:

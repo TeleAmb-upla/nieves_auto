@@ -3,9 +3,9 @@
 from pathlib import Path
 from typing import Optional, List
 import logging
-from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from utilities import logs
+
+logger = logging.getLogger(__name__)
 
 
 def get_folder_id(
@@ -68,7 +68,7 @@ def get_folder_id(
 
     except HttpError as error:
         # Log the error and return None
-        logging.warning(error)
+        logger.warning(error)
         return None
 
     target_folder_id = current_folder_id
@@ -222,7 +222,7 @@ def check_asset_exists(
     """
     asset_path = Path(asset).parent.as_posix()
     file_name = Path(asset).name
-    logging.debug(f"Searching for asset: {asset}")
+    logger.debug(f"Searching for asset: {asset}")
 
     # Get list of assets in given path
     try:
@@ -233,9 +233,9 @@ def check_asset_exists(
         if asset_list is None:
             raise
         asset_list_len = len(asset_list)
-        logging.debug(f"Found {asset_list_len} assets in path: {asset_path}")
+        logger.debug(f"Found {asset_list_len} assets in path: {asset_path}")
     except:
-        logging.warning("Asset list could not be retrieved")
+        logger.warning("Asset list could not be retrieved")
         return False
 
     # Check if asset is in asset list
@@ -244,7 +244,7 @@ def check_asset_exists(
         if file_name == asset_x:
             asset_found = True
 
-    logging.debug(f"Asset found: {asset_found}")
+    logger.debug(f"Asset found: {asset_found}")
     return asset_found
 
 
@@ -318,11 +318,3 @@ def get_asset_list(
     else:
         asset_list = []
     return asset_list
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

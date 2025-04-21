@@ -1,6 +1,8 @@
 from datetime import date, datetime, timedelta
 import logging
 
+logger = logging.getLogger(__name__)
+
 
 def check_valid_date(date_string: str) -> bool:
     """
@@ -16,7 +18,7 @@ def check_valid_date(date_string: str) -> bool:
         valid_date = date.fromisoformat(date_string)
         return True
     except Exception as e:
-        logging.warning(e)
+        logger.warning(e)
         return False
 
 

@@ -1,0 +1,49 @@
+======================================================================
+SUMMARY
+======================================================================
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+======================================================================
+EXPORT PLAN
+======================================================================
+
+Images to export: 
+- name_2025-04
+- name_2025-03
+- name_2025-02
+
+[- No new images to export]
+
+Images Excluded:
+- name_2025-05 : Month images not complete in MODIS
+
+======================================================================
+GEE [- Disabled] [Exporting to: /target/path]
+======================================================================
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+Results:
+- name_2025-02 : ERROR     : Export task could not be created
+- name_2025-03 : EXCLUDED  : Image already exists
+- name_2025-04 : COMPLETED :
+
+======================================================================
+GOOGLE DRIVE [- Disabled] [Exporting to: /target/path]
+======================================================================
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+Results:
+- name_2025-02 : ERROR     : Export task could not be created
+- name_2025-03 : EXCLUDED  :  Image already exists
+- name_2025-04 : COMPLETED :
+
+=======================================================================

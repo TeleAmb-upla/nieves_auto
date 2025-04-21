@@ -1,15 +1,17 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import ee
-from utilities import dates
-from gee import dates as gee_dates
-from utilities.scripting import DEFAULT_CONFIG
-from gee.image import get_date_ymd
+from snow_ipa.utils import dates
+from snow_ipa.services.gee import dates as gee_dates
+from snow_ipa.core.scripting import DEFAULT_CONFIG
+from snow_ipa.services.gee.image import get_date_ymd
+
+logger = logging.getLogger(__name__)
 
 
 def ic_rm_incomplete_months(
     collection: ee.ImageCollection,
-    last_expected_img_dt: datetime = dates.prev_month_last_date(),
+    last_expected_img_dt: date = dates.prev_month_last_date(),
 ) -> ee.ImageCollection:
     """
     Removes last months from an image collection if they don't have all the images for the month. Meaning, it is \'incomplete\'.
@@ -17,7 +19,7 @@ def ic_rm_incomplete_months(
 
     Args:
         collection: an Image collection
-        Last_expected_img_dt: date of the last expected image in a collection.
+        last_expected_img_dt: date of the last expected image in a collection.
 
     Returns: an ImageCollection
     """
@@ -29,13 +31,13 @@ def ic_rm_incomplete_months(
             .get("system:time_start")  # type: ignore
         ).getInfo()
     except Exception as e:
-        logging.error("Couldn't get image date from GEE")
+        logger.error("Couldn't get image date from GEE")
         raise
     try:
         # Copy date of last image from server
         last_image_dt = gee_dates.format_ee_timestamp(last_image_dt).date()
     except Exception as e:
-        logging.error("Couldn't format image date from GEE")
+        logger.error("Couldn't format image date from GEE")
 
     try:
         # Remove the last month if last image != last expected image
@@ -45,34 +47,34 @@ def ic_rm_incomplete_months(
             )
             msg = f"Removing Incomplete month {incomplete_month} from collection..."
             print(msg)
-            logging.info(msg)
-            logging.debug(f"\t Last Image Expected: {last_expected_img_dt}")
-            logging.debug(f"\t Last Image found: {last_image_dt}")
+            logger.info(msg)
+            logger.debug(f"\t Last Image Expected: {last_expected_img_dt}")
+            logger.debug(f"\t Last Image found: {last_image_dt}")
             new_end_date = last_expected_img_dt.replace(day=1)
             new_end_date_ym = f"{new_end_date.year}-{new_end_date.month}"
             collection = collection.filterDate(
                 DEFAULT_CONFIG["MODIS_MIN_MONTH"], new_end_date_ym
             )
             new_last_month = new_end_date - timedelta(days=1)
-            logging.debug(
+            logger.debug(
                 f"New last month is: {new_last_month.year}-{new_last_month.month}"
             )
-            logging.debug(f"\t New Last Image Expected: {new_last_month}")
+            logger.debug(f"\t New Last Image Expected: {new_last_month}")
             # Recurrent call in case more incomplete months are present
             collection = ic_rm_incomplete_months(
                 collection=collection, last_expected_img_dt=new_last_month
             )
         else:
             # Return new image collection if there are no incomplete months to remove
-            logging.info(
+            logger.info(
                 f"Last complete month in collection: {last_expected_img_dt.year}-{last_expected_img_dt.month}"
             )
         return collection
     except Exception as e:
-        logging.error(
+        logger.error(
             "Couldn't remove images of incomplete months from image collection."
         )
-        logging.error(e)
+        logger.error(e)
         raise
 
 
@@ -91,7 +93,7 @@ def ic_get_distinct_months(collection: ee.ImageCollection) -> list:
 
     ee_dates = collection.map(get_date_ymd).distinct("date").aggregate_array("date")  # type: ignore
     collection_dates = ee_dates.getInfo()
-    logging.debug(f"Total distinct dates in Imagecollection: {len(collection_dates)}")
+    logger.debug(f"Total distinct dates in Imagecollection: {len(collection_dates)}")
 
     # Filter dates that are not first day of the month
     distinct_months = []
@@ -100,9 +102,9 @@ def ic_get_distinct_months(collection: ee.ImageCollection) -> list:
             distinct_months.append(image_date)
 
     distinct_months.sort(reverse=True)
-    logging.debug(f"Distinct months in collection: {len(distinct_months)}")
-    logging.debug(f"First month: {distinct_months[len(distinct_months)-1]}")
-    logging.debug(f"Last month: {distinct_months[0]}")
+    logger.debug(f"Distinct months in collection: {len(distinct_months)}")
+    logger.debug(f"First month: {distinct_months[len(distinct_months)-1]}")
+    logger.debug(f"Last month: {distinct_months[0]}")
 
     return distinct_months
 
@@ -167,7 +169,7 @@ def ic_monthly_mean(
         ee_post_target_ym = ee_target_ym.advance(1, "month")  # type: ignore
 
         # Log the processing message
-        logging.debug(
+        logger.debug(
             f"Processing: {gee_dates.format_ee_timestamp(ee_target_ym.getInfo()).date()} - {gee_dates.format_ee_timestamp(ee_post_target_ym.getInfo()).date()}"
         )
 
@@ -185,11 +187,3 @@ def ic_monthly_mean(
     # Convert the list to an ImageCollection and return it
     ee_image_collection = ee.ImageCollection(ee_image_list)
     return ee_image_collection
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

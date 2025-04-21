@@ -1,11 +1,10 @@
 import logging
 import pathlib
-import sys
 import ee
-from utilities import logs
 
 # cSpell:enableCompoundWords
 
+logger = logging.getLogger(__name__)
 # Constants. Used as Defaults in case no alternative is provided.
 GEE_PATHPREFIX = "projects/earthengine-legacy/assets/"
 
@@ -38,7 +37,7 @@ def get_asset_list(parent: str, asset_type=None, recursive: bool = False):
     except ValueError as e:
         raise
     except Exception as e:
-        logging.error(f"Can't find assets folder")
+        logger.error(f"Can't find assets folder")
         raise
 
     try:
@@ -49,8 +48,8 @@ def get_asset_list(parent: str, asset_type=None, recursive: bool = False):
                 f"Expecting a 'list' of assets but got '{type(asset_list)}' instead"
             )
     except Exception as e:
-        logging.warning(f"Can't list objects in: {parent}")
-        logging.warning(e)
+        logger.warning(f"Can't list objects in: {parent}")
+        logger.warning(e)
         raise
 
     # Get assets from list
@@ -91,11 +90,8 @@ def check_asset_exists(asset: str, asset_type=None):
                     break
         return asset_found
 
-    except Exception:
+    except Exception as e:
         return False
-
-    logging.debug(f"Asset successfully found: {asset_found}")
-    return asset_found
 
 
 def check_folder_exists(path):
@@ -113,7 +109,7 @@ def check_folder_exists(path):
         if asset:
             return asset["type"] in ["FOLDER", "IMAGE_COLLECTION"]
     except Exception as e:
-        logging.warning(e)
+        logger.warning(e)
         return False
 
 
@@ -150,11 +146,3 @@ def get_trailing_ymd(assets_list: list) -> list:
     else:
         assets_months = []
     return assets_months
-
-
-def main():
-    pass
-
-
-if __name__ == "__main__":
-    main()

@@ -1,7 +1,7 @@
 import pytest
 from datetime import date, datetime, timedelta
 import logging
-from snow_ipa.utilities.dates import (
+from snow_ipa.utils.dates import (
     check_valid_date,
     check_valid_date_list,
     current_year_month,
@@ -37,7 +37,7 @@ def test_current_year_month(monkeypatch):
         def today(cls):
             return cls(2022, 12, 1)
 
-    monkeypatch.setattr("snow_ipa.utilities.dates.datetime", MockDateTime)
+    monkeypatch.setattr("snow_ipa.utils.dates.datetime", MockDateTime)
     assert current_year_month() == "2022-12"
 
 
@@ -47,5 +47,5 @@ def test_prev_month_last_date(monkeypatch):
         def today(cls):
             return cls(2022, 12, 1)
 
-    monkeypatch.setattr("snow_ipa.utilities.dates.datetime", MockDateTime)
+    monkeypatch.setattr("snow_ipa.utils.dates.datetime", MockDateTime)
     assert prev_month_last_date() == date(2022, 11, 30)
