@@ -1,6 +1,6 @@
-FROM python:3.11.6-slim-bookworm as builder
+FROM python:3.11.12-slim-bookworm AS builder
 
-RUN pip install poetry==1.4.2
+RUN pip install poetry==2.0.1
 
 ENV POETRY_NO_INTERACTION=1 \
     POETRY_VIRTUALENVS_IN_PROJECT=1 \
@@ -9,13 +9,14 @@ ENV POETRY_NO_INTERACTION=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml poetry.lock /app/
+COPY ./src /app/src
 RUN touch README.md
 
-RUN poetry install --without dev --no-root && rm -rf $POETRY_CACHE_DIR
+RUN poetry install --without dev && rm -rf $POETRY_CACHE_DIR
 
-# The runtime image, used to just run the code provided its virtual environment
-FROM python:3.11.6-slim-bookworm as runtime
+
+FROM python:3.11.12-slim-bookworm AS runtime
 
 ## Install system dependencies
 # using supervisor to run cron in the background as service
@@ -41,16 +42,19 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-# Copy costum config files
+# SET SNOW_CONTAINERIZED env var to enable logging to stream handler
+ENV SNOW_CONTAINERIZED=true
+
+# Copy custom config files
 COPY ./configs/supervisord.conf /etc/supervisor/conf.d/
-# COPY ./configs/nieves-crontab /etc/cron.d/
 
 # Copy app
 WORKDIR /app
-COPY . /app
+COPY . /app/
+# COPY ./shell_scripts /app/shell_scripts
+# COPY ./src/snow_ipa /app/snow_ipa
+# COPY ./
 
-# RUN chmod 0644 /etc/cron.d/nieves-crontab && \
-# chmod 0744 /app/nieves_autorun.sh && \
 RUN chmod 0744 /app/shell_scripts/*.sh
 
 # Creates a non-root user with an explicit UID and adds permission to access the /app folder

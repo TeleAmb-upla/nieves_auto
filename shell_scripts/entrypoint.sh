@@ -22,8 +22,8 @@ if [[ "${SNOW_SCHEDULER,,}" =~ ^(yes|true|1)$ ]]; then
     /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
 
 else
-    # Run the python script named snow_ipa.py and redirect output to Docker's logging driver
-    exec python -u /app/snow_ipa/snow_ipa.py
+    # Run the python script named main.py and redirect output to Docker's logging driver
+    exec python -m snow_ipa.main
 
 fi
 

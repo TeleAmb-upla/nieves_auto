@@ -5,9 +5,9 @@ import pytest
 from datetime import datetime
 
 # from unittest.mock import MagicMock, patch
+from core.exporting import ExportManager
 from snow_ipa.core.scripting import (
     ScriptManager,
-    ExportManager,
     init_script_config,
     error_message,
 )

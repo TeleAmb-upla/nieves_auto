@@ -1,0 +1,78 @@
+
+{% extends "base_template.txt" %}
+
+{% block content %}
+======================================================================
+SUMMARY
+======================================================================
+
+{{ results_summary }}
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+======================================================================
+EXPORT PLAN
+======================================================================
+
+{{ general_plan}}
+
+Images to export: 
+- name_2025-04
+- name_2025-03
+- name_2025-02
+
+[- No new images to export]
+
+Images Excluded:
+- name_2025-05 : Month images not complete in MODIS
+
+======================================================================
+GEE - {{ gee_path }}
+GEE [- Disabled] [Exporting to: /target/path]
+======================================================================
+
+{{ gee_results_summary }}
+
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+{{ gee_export_plan}}
+
+Results:
+- name_2025-02 : ERROR     : Export task could not be created
+- name_2025-03 : EXCLUDED  : Image already exists
+- name_2025-04 : COMPLETED :
+
+======================================================================
+GOOGLE DRIVE = {{ google_drive_path }}
+GOOGLE DRIVE [- Disabled] [Exporting to: /target/path]
+======================================================================
+
+{{ gdrive_results_summary }}
+
+ Exported    Excluded     Failed 
+===================================
+     2           2           2    
+
+{{ gdrive_export_plan }}
+
+Results:
+- name_2025-02 : ERROR     : Export task could not be created
+- name_2025-03 : EXCLUDED  :  Image already exists
+- name_2025-04 : COMPLETED :
+
+=======================================================================
+MODIS STATUS
+=======================================================================
+
+Collection: MODIS/006/MOD09GA
+Total images: 1000
+Last image: 2025-05-01
+Last complete Month: 2025-04-01
+
+
+{% endblock content %}

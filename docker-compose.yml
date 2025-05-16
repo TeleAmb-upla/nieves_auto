@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   nieve_auto:
-    image: ericklinares/gee-nieve-sequia-auto:3.0.0
+    image: ericklinares/gee-nieve-sequia-auto:4.0.0
     deploy:
       replicas: 1 
       resources: 
@@ -10,20 +8,21 @@ services:
           cpus: '1'
           memory: '2G'
     environment:
-      - SNOW_SERVICE_USER=user@dummy_project.iam.gserviceaccount.com
+      - SNOW_USER=user@dummy_project.iam.gserviceaccount.com
       - SNOW_SERVICE_CREDENTIALS_FILE=/run/secrets/credentials
       - SNOW_EXPORT_TO=toAssetAndDrive
-      - SNOW_ASSETS_PATH=projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci
-      - SNOW_DRIVE_PATH=raster_sci_cci
+      - SNOW_GEE_ASSETS_PATH=projects/ee-proyectosequiateleamb/assets/nieve/raster_sci_cci
+      - SNOW_GDRIVE_ASSETS_PATH=raster_sci_cci
       - SNOW_REGIONS_ASSET_PATH=users/proyectosequiateleamb/Regiones/DPA_regiones_nacional
       - SNOW_ENABLE_EMAIL='True'
-      - SNOW_SMTP_SERVER=mail.dummyhost.com
+      - SNOW_SMTP_SERVER="mail.dummyhost.com"
       - SNOW_SMTP_PORT=587
-      - SNOW_SMTP_USERNAME=email.user
+      - SNOW_SMTP_USER=email.user
       - SNOW_SMTP_PASSWORD_FILE=/run/secrets/smtp_password
-      - SNOW_FROM_ADDRESS=service@dummyhost.com
-      - SNOW_TO_ADDRESS="user@dummyhost2.com;user2@dummyhost2.com"
+      - SNOW_SMTP_FROM_ADDRESS=service@dummyhost.com
+      - SNOW_SMTP_TO_ADDRESS="user@dummyhost2.com;user2@dummyhost2.com"
       - SNOW_LOG_LEVEL=INFO
+      - SNOW_LOG_FILE=snow.log
       - SNOW_SCHEDULER=True
       - SNOW_CRON='0 0 * * *'
     

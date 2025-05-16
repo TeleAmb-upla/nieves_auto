@@ -1,0 +1,13 @@
+Image Processing Automation Report
+
+-------------------------------------------------------------
+Status: {{ status }} 
+Date: {{ start_time }}
+Runtime: {{ execution_time }} 
+-------------------------------------------------------------
+{% block content %}
+{% endblock content %}
+This message was automatically generated, replies to this message might not be monitored.
+
+Thanks. 
+The IPA Team
