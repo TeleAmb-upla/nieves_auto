@@ -4,6 +4,8 @@ import copy
 import prettytable
 from time import sleep
 
+from pyrsistent import v
+
 
 logger = logging.getLogger(__name__)
 
@@ -230,9 +232,15 @@ class ExportList:
         if not list(status_dict.keys()):
             return "No Export tasks"
 
+        # Create table
         table = prettytable.PrettyTable()
-        table.field_names = list(status_dict.keys())
-        table.add_row(list(status_dict.values()))
+        table.set_style(prettytable.TableStyle.MSWORD_FRIENDLY)
+        table.field_names = ["Status", "Count"]
+        table.align["Status"] = "l"
+
+        # Add rows
+        rows = [[k, v] for k, v in status_dict.items()]
+        table.add_rows(rows)
         return table.get_string()
 
     def start_exports(self) -> dict[str, int]:
