@@ -1,6 +1,7 @@
 from snow_ipa.services.gee.exports import ExportList
 from snow_ipa.utils import dates
 from typing import Any
+from colorama import Fore, Style
 
 
 class ExportManager:
@@ -76,7 +77,7 @@ class ExportManager:
             return "No export plan available."
 
         str_export_plan = "EXPORT PLAN:\n"
-        str_export_plan += f"To Export:\n"
+        str_export_plan += f"{Fore.GREEN}To Export:{Style.RESET_ALL}\n"
         if self.export_plan["final_plan"]:
             str_export_plan += "\n".join(
                 [f"  |- {month}" for month in self.export_plan["final_plan"]]
@@ -85,7 +86,7 @@ class ExportManager:
             str_export_plan += "- No images to export"
 
         if list(self.export_plan["excluded"].keys()):
-            str_export_plan += f"\nExcluded:\n"
+            str_export_plan += f"\n{Fore.GREEN}Excluded:{Style.RESET_ALL}\n"
             str_excluded = [
                 f"  |- {key}: {value}"
                 for key, value in self.export_plan["excluded"].items()
@@ -115,7 +116,7 @@ class ExportManager:
         ]
 
         if self.export_to_gee:
-            str_export_status += f"GEE Exports: \n"
+            str_export_status += f"{Fore.GREEN}GEE Exports:{Style.RESET_ALL} \n"
             gee_tasks = [task["str"] for task in task_str if task["target"] == "gee"]
             str_export_status += "\n".join(gee_tasks)
 
@@ -123,7 +124,9 @@ class ExportManager:
             str_export_status += f"\n"
 
         if self.export_to_gdrive:
-            str_export_status += f"Google Drive Exports: \n"
+            str_export_status += (
+                f"{Fore.GREEN}Google Drive Exports:{Style.RESET_ALL} \n"
+            )
             gdrive_tasks = [
                 task["str"] for task in task_str if task["target"] == "gdrive"
             ]
