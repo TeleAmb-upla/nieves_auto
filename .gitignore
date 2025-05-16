@@ -4,6 +4,8 @@
 **/*.debug.yml
 **/*.log
 **/Experiments
+**/home_run/
 localrun.sh
 localrun_standard.sh
 docker-compose-home.yml
+**/notebooks
