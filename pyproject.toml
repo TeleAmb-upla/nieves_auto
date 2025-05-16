@@ -1,6 +1,6 @@
 [project]
 name = "snow-ipa"
-version = "4.0.0"
+version = "4.0.0-rc.1"
 description = "Google Earth Engine snow cover image export automation"
 authors = [
     { "name" = "Erick Linares", "email" = "erick.linares@gmail.com" },
@@ -72,14 +72,16 @@ addopts = ["--import-mode=importlib"]
 testpaths = ["tests"]
 
 [tool.semantic_release]
-version_toml = "pyproject.toml:project.version"
+version_toml = ["pyproject.toml:project.version"]
+build_command = ""
 build_command_env = []
+# upload_to_pypi = false
 tag_format = "v{version}"
 
 [tool.semantic_release.branches.main]
 match = "(main|master)"
 prerelease_token = "rc"
-prerelease = false
+prerelease = true
 
 [tool.semantic_release.changelog]
 mode = "update"
