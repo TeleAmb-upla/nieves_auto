@@ -1,3 +1,6 @@
+from numpy import False_
+
+
 DEFAULT_LOGGING_CONFIG = {
     "name": "snow_ipa",
     "log_file": "./snow.log",
@@ -10,7 +13,9 @@ DEFAULT_LOGGING_CONFIG = {
 DEFAULT_CONFIG = {
     "user": None,
     "service_credentials_file": None,
-    "export_to": "toAsset",
+    "export_to_gee": False,
+    "export_to_gdrive": False,
+    # "export_to": "toAsset",
     "gee_assets_path": None,
     "gdrive_assets_path": None,
     "regions_asset_path": None,

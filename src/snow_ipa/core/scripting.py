@@ -25,9 +25,6 @@ class ScriptManager:
     command-line arguments, and validation.
     """
 
-    export_to_gee: bool = False
-    export_to_gdrive: bool = False
-
     def __init__(self, new_config: dict | None = None) -> None:
         self.start_time: datetime = datetime.now()
         self.config: dict = deepcopy(DEFAULT_CONFIG)
@@ -35,10 +32,12 @@ class ScriptManager:
         self.status: str = "OK"
 
         self.update_config(new_config)
-        if self.config["export_to"] in ["toAsset", "toAssetAndDrive"]:
+
+        # if Export to GEE and GDRIVE are false default to GEE=TRUE
+        self.export_to_gee: bool = self.config["export_to_gee"]
+        self.export_to_gdrive: bool = self.config["export_to_gdrive"]
+        if not self.export_to_gee and not self.export_to_gdrive:
             self.export_to_gee = True
-        if self.config["export_to"] in ["toDrive", "toAssetAndDrive"]:
-            self.export_to_gdrive = True
 
     def update_config(self, new_config: dict | None = None) -> dict:
         """
@@ -76,17 +75,15 @@ class ScriptManager:
         if self.config["service_credentials_file"] is None:
             raise ValueError("Service credentials file is required.")
 
-        if self.config["export_to"] in ["toAsset", "toAssetAndDrive"]:
-            if self.config["gee_assets_path"] is None:
-                raise ValueError(
-                    "Assets path is required if export_to is set to 'toAsset' or 'toAssetAndDrive'."
-                )
+        if self.export_to_gee and self.config["gee_assets_path"] is None:
+            raise ValueError(
+                "GEE Assets path is required if exporting to Google Earth Engine Assets."
+            )
 
-        if self.config["export_to"] in ["toDrive", "toAssetAndDrive"]:
-            if self.config["gdrive_assets_path"] is None:
-                raise ValueError(
-                    "Google Drive path is required if export_to is set to 'toDrive' or 'toAssetAndDrive'."
-                )
+        if self.export_to_gdrive and self.config["gdrive_assets_path"] is None:
+            raise ValueError(
+                "Google Drive path is required if exporting to Google Drive."
+            )
 
         if self.config["regions_asset_path"] is None:
             raise ValueError("Regions asset path is required.")
@@ -160,13 +157,6 @@ class ScriptManager:
             # Attempt to send error by email
             if self.email_service:
                 pass
-                # terminate_error(
-                #     err_message=f"Configuration failed: {str(e)}",
-                #     script_start_time=self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
-                #     exception=e,
-                #     email_service=self.email_service,
-                #     exit_script=False,
-                # )
             raise e
 
     def print_config(self, keys_to_mask: list = []) -> str:

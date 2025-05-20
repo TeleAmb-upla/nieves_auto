@@ -34,9 +34,9 @@ def main():
     script_manager = init_script_config()
     logger = logs.init_logging_config(config=script_manager.config)
 
-    logger.info("------ STARTING SCRIPT ------")
-    script_manager.run_complete_config()
     try:
+        logger.info("------ STARTING SCRIPT ------")
+        script_manager.run_complete_config()
         export_manager = ExportManager(
             export_to_gee=script_manager.export_to_gee,
             export_to_gdrive=script_manager.export_to_gdrive,

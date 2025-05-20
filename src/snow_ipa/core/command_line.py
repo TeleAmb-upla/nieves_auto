@@ -73,22 +73,30 @@ def set_argument_parser() -> argparse.ArgumentParser:
         help="GEE asset path for reading regions FeatureCollection",
     )
 
-    # Options for exporting images - OPTIONAL, HAS DEFAULT VALUE
-    valid_export_to = ["toAsset", "toDrive", "toAssetAndDrive"]
-    default_export_to = os.getenv("SNOW_EXPORT_TO", DEFAULT_CONFIG["export_to"])
-    if default_export_to not in valid_export_to:
-        raise SystemExit(
-            f"Invalid export option specified. Valid options are: {', '.join(valid_export_to)}."
-        )
-
+    # Option to export images to GEE - OPTIONAL default is False
     parser.add_argument(
-        "-e",
-        "--export-to",
-        dest="export_to",
-        default=os.getenv("SNOW_EXPORT_TO", DEFAULT_CONFIG["export_to"]),
-        choices=valid_export_to,
-        type=str,
-        help=f"Where to export images. Valid options {', '.join(valid_export_to)}. Default={DEFAULT_CONFIG['export_to']} ",
+        "--export-to-gee",
+        dest="export_to_gee",
+        default=(
+            os.getenv("SNOW_EXPORT_TO_GEE", "False").lower().strip("'\"")
+            in ("true", "1", "yes")
+        ),
+        action="store_true",
+        # type=bool,
+        help="Export to GEE asset",
+    )
+
+    # Option to export images to Google Drive - OPTIONAL default is False
+    parser.add_argument(
+        "--export-to-gdrive",
+        dest="export_to_gdrive",
+        default=(
+            os.getenv("SNOW_EXPORT_TO_GDRIVE", "False").lower().strip("'\"")
+            in ("true", "1", "yes")
+        ),
+        action="store_true",
+        # type=bool,
+        help="Export to Google Drive",
     )
 
     # Time period arguments - OPTIONAL
