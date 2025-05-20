@@ -3,7 +3,7 @@ Image Processing Automation Report
 -------------------------------------------------------------
 Status: {{ status }} 
 Date: {{ start_time }}
-Runtime: {{ execution_time }} 
+Runtime: {{ runtime }} 
 -------------------------------------------------------------
 {% block content %}
 {% endblock content %}

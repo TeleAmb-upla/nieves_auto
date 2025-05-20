@@ -44,8 +44,11 @@ REQUIRED_EMAIL_CONFIGS = [
     "smtp_to_address",
 ]
 
-ERROR_EMAIL_TEMPLATE = "error_email_template.txt"
+ERROR_TXT_EMAIL_TEMPLATE = "error_email_template.txt"
+ERROR_HTML_EMAIL_TEMPLATE = "error_email_template.html"
 SUCCESS_EMAIL_TEMPLATE = "report_email_template.txt"
+REPORT_TXT_EMAIL_TEMPLATE = "report_email_template.txt"
+REPORT_HTML_EMAIL_TEMPLATE = "report_email_template.html"
 
 MODIS = {
     "path": "MODIS/061/MOD10A1",

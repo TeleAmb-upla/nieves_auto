@@ -1,31 +1,48 @@
-{% extends "base_template.txt" %}
+{% extends "base_email_template.txt" %}
 {% block content %}
-======================================================================
+=====================================
 SUMMARY
-======================================================================
-{{ results_summary }}
-
-======================================================================
+=====================================
+{% for status in export_summary %}
+{{ status.status }}: {{ status.count }}
+{% endfor %}
+=====================================
 EXPORT PLAN
-======================================================================
-{{ general_plan}}
+=====================================
+Images to export:
+{% for image in general_plan %}
+    - {{ image }}
+{% endfor %}
 
-======================================================================
-GEE - {{ gee_path }}
-======================================================================
-{{ gee_results_summary }}
+Images excluded:
+{% for image in excluded_plan %}
+    - {{ image }}
+{% endfor %}
+=====================================
+GEE {% if not export_to_gee %} - Disabled {% endif %}
+=====================================
+{% if export_to_gee %}
+Target: {{ gee_path }}
 
-{{ gee_export_plan}}
+{% for image in gee_export_results %}
+    - {{ image }}
+{% endfor %}
+{% endif %}
+=====================================
+GOOGLE DRIVE {% if not export_to_gdrive %} - Disabled {% endif %}
+=====================================
+{% if export_to_gdrive %}
+Target: {{ gdrive_path }}
 
-======================================================================
-GOOGLE DRIVE = {{ gdrive_path }}
-======================================================================
-{{ gdrive_results_summary }}
-
-{{ gdrive_export_plan }}
-
-=======================================================================
+{% for image in gdrive_export_results %}
+    - {{ image }}
+{% endfor %}
+{% endif %}
+=====================================
 MODIS STATUS
-=======================================================================
-{{ modis_status}}
+=====================================
+Collection: {{ modis.collection }}
+Total images: {{ modis.total_images }}
+Last image: {{ modis.last_image }}
+Last complete month: {{ modis.last_complete_month }}
 {% endblock content %}

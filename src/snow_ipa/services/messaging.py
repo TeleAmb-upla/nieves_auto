@@ -1,5 +1,7 @@
 import smtplib
 from email.message import EmailMessage
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import logging
 import re
 from datetime import datetime
@@ -8,7 +10,12 @@ from email_validator import validate_email, EmailNotValidError
 
 # from snow_ipa.utils.templates import templates
 from snow_ipa.core.exporting import ExportManager
-from snow_ipa.core.configs import ERROR_EMAIL_TEMPLATE, SUCCESS_EMAIL_TEMPLATE
+from snow_ipa.core.configs import (
+    ERROR_TXT_EMAIL_TEMPLATE,
+    ERROR_HTML_EMAIL_TEMPLATE,
+    REPORT_TXT_EMAIL_TEMPLATE,
+    REPORT_HTML_EMAIL_TEMPLATE,
+)
 from jinja2 import Template, Environment, PackageLoader, select_autoescape
 
 
@@ -161,6 +168,44 @@ class EmailService:
         # Close the connection
         self._close_connection()
 
+    def send_html_email(
+        self,
+        subject: str,
+        txt_message: str,
+        html_message: str,
+        from_address: str,
+        to_address: str | list[str],
+    ) -> None:
+        self._connect()
+
+        if self.smtp_connection is None:
+            logger.error("SMTP connection could not be established. Email not sent.")
+            return
+
+        if isinstance(to_address, str):
+            to_address = [to_address]
+
+        for _address in to_address:
+            try:
+                # Build message
+                message = MIMEMultipart("alternative")
+                part1 = MIMEText(txt_message, "plain")
+                message.attach(part1)
+                part2 = MIMEText(html_message, "html")
+                message.attach(part2)
+                message["From"] = from_address
+                message["To"] = _address
+                message["Subject"] = subject
+                if self.smtp_connection is not None:
+                    self.smtp_connection.sendmail(
+                        from_address, _address, message.as_string()
+                    )
+            except Exception as e:
+                logger.error(f"Error sending email [{_address}]: {e}")
+
+        # Close the connection
+        self._close_connection()
+
     def _close_connection(self) -> None:
         """
         Closes the connection to the SMTP server.
@@ -224,26 +269,31 @@ def send_error_message(
     runtime = start_time.humanize(end_time, only_distance=True)
 
     try:
-        template = template_env.get_template(ERROR_EMAIL_TEMPLATE)
-        message = template.render(
-            {
-                "status": "Error",
-                "error_message": str(exception),
-                "start_time": start_time.format("YYYY-MM-DD HH:mm:ss (dddd)"),
-                "execution_time": runtime,
-            }
-        )
+        email_context = {
+            "status": "Failed - Error",
+            "start_time": start_time.format("YYYY-MM-DD HH:mm:ss (dddd)"),
+            "runtime": runtime,
+            "error_message": str(exception),
+        }
+        txt_template = template_env.get_template(ERROR_TXT_EMAIL_TEMPLATE)
+        txt_message = txt_template.render(email_context)
+        html_template = template_env.get_template(ERROR_HTML_EMAIL_TEMPLATE)
+        html_message = html_template.render(email_context)
 
     except Exception as e:
         logger.error(f"Error reading or rendering email template: {e}")
         message = f"Error Message: {str(exception)}"
 
     subject = "Snow IPA Export Report: Failed"
-    email_service.send_email(
-        subject=subject, body=message, from_address=from_address, to_address=to_address
+    email_service.send_html_email(
+        subject=subject,
+        txt_message=txt_message,
+        html_message=html_message,
+        from_address=from_address,
+        to_address=to_address,
     )
 
-    return message
+    return None
 
 
 def send_report_message(
@@ -252,7 +302,7 @@ def send_report_message(
     email_service: EmailService,
     from_address: str,
     to_address: str | list[str],
-):
+) -> None:
 
     image_prefix = export_manager.image_prefix
 
@@ -262,122 +312,109 @@ def send_report_message(
     runtime = start_time.humanize(end_time, only_distance=True)
 
     # MODIS Status
-    modis_status = (
-        f"Collection: {export_manager.modis_status['collection']}\n"
-        + f"Total Images: {export_manager.modis_status['total_images']}\n"
-        + f"Last Image: {export_manager.modis_status['last_image']}\n"
-        + f"Last Complete Month: {export_manager.modis_status['last_complete_month']}"
-    )
+    modis_status = export_manager.modis_status
+
     # General Export Plan
     general_plan = export_manager.export_plan["final_plan"]
 
-    if general_plan is None:
-        general_plan = [f"- {image_prefix}_{m[:7]}" for m in general_plan]
-        general_plan = "\n".join(general_plan)
+    if general_plan:
+        general_plan = [f"{image_prefix}_{m[:7]}" for m in general_plan]
     else:
-        general_plan = "- No new images to export"
+        general_plan = ["No new images to export"]
 
     # General Export Plan Exceptions
     general_exceptions = export_manager.export_plan["excluded"]
     if len(general_exceptions.keys()) > 0:
         general_exceptions = [
-            f"- {image_prefix}_{key[:7]}: {value}"
-            for key, value in general_exceptions.items()
+            f"{image_prefix}_{month[:7]}: {month_status}"
+            for month, month_status in general_exceptions.items()
         ]
-        general_exceptions = "\n".join(general_exceptions)
     else:
-        general_exceptions = ""
-
-    general_plan = (
-        f"Images to export:\n{general_plan}\n\nImages Excluded:\n{general_exceptions}"
-    )
+        general_exceptions = None
 
     # GEE export plan
-    gee_path = (
-        export_manager.gee_assets_path if export_manager.export_to_gee else "Disabled"
-    )
-    gee_export_plan = [
+    export_to_gee = export_manager.export_to_gee
+    gee_path = export_manager.gee_assets_path
+    gee_export_results = [
         f"{task.image}: {task.status} {task.error if task.error else ''}"
         for task in export_manager.export_tasks.export_tasks
         if task.target == "gee"
     ]
-    if len(gee_export_plan) > 0:
-        gee_export_plan = [f"- {task}" for task in gee_export_plan]
-        gee_export_plan = "\n".join(gee_export_plan)
-        gee_export_plan = f"Results:\n{gee_export_plan}"
-        gee_results_summary = export_manager.export_tasks.pretty_export_summary(
-            filter="gee"
-        )
-    else:
-        gee_export_plan = "- No new images to export"
-        gee_results_summary = ""
+    if len(gee_export_results) == 0:
+        gee_export_results = ["No new images to export"]
 
     # GDRIVE export plan
-    gdrive_path = (
-        export_manager.gdrive_assets_path
-        if export_manager.export_to_gdrive
-        else "Disabled"
-    )
-    gdrive_export_plan = [
+    export_to_gdrive = export_manager.export_to_gdrive
+    gdrive_path = export_manager.gdrive_assets_path
+    gdrive_export_results = [
         f"{task.image}: {task.status} {task.error if task.error else ''}"
         for task in export_manager.export_tasks.export_tasks
         if task.target == "gdrive"
     ]
-    if len(gdrive_export_plan) > 0:
-        gdrive_export_plan = [f"- {task}" for task in gdrive_export_plan]
-        gdrive_export_plan = "\n".join(gdrive_export_plan)
-        gdrive_export_plan = f"Results:\n{gdrive_export_plan}"
-        gdrive_results_summary = export_manager.export_tasks.pretty_export_summary(
-            filter="gdrive"
-        )
-    else:
-        gdrive_export_plan = "- No new images to export"
-        gdrive_results_summary = ""
+    if len(gdrive_export_results) == 0:
+        gdrive_export_results = ["No new images to export"]
 
     # Status
-    exports = [
-        str(img)
-        for img in export_manager.export_tasks.export_tasks
-        if img.status != "ALREADY_EXISTS"
-    ]
-    complete_exports = [
-        str(img)
-        for img in export_manager.export_tasks.export_tasks
-        if img.status == "COMPLETED"
-    ]
+    total_exports = len(export_manager.export_tasks.export_tasks)
+    n_existing_exports = len(
+        [
+            img
+            for img in export_manager.export_tasks.export_tasks
+            if img.status == "ALREADY_EXISTS"
+        ]
+    )
+    n_complete_exports = len(
+        [
+            img
+            for img in export_manager.export_tasks.export_tasks
+            if img.status == "COMPLETED"
+        ]
+    )
+    n_other_exports = total_exports - n_existing_exports - n_complete_exports
 
-    if complete_exports:
-        status = f"Completed - {len(complete_exports)} images exported"
-    elif exports:
+    if n_other_exports > 0:
         status = f"Completed - with errors"
+    elif n_complete_exports > 0:
+        status = f"Completed - {n_complete_exports} images exported"
     else:
-        status = "Completed - No new images to export"
+        status = f"Completed - No new images to export"
 
+    # Export Summary
+    export_summary = export_manager.export_tasks.export_summary()
+    export_summary = [{"status": k, "count": v} for k, v in export_summary.items()]
+
+    # Render TEXT and HTTP email template
     try:
-        template = template_env.get_template(SUCCESS_EMAIL_TEMPLATE)
-        message = template.render(
-            {
-                "status": status,
-                "start_time": start_time.format("YYYY-MM-DD HH:mm:ss (dddd)"),
-                "execution_time": runtime,
-                "results_summary": export_manager.export_tasks.pretty_export_summary(),
-                "general_plan": general_plan,
-                "gee_path": gee_path,
-                "gee_results_summary": gee_results_summary,
-                "gee_export_plan": gee_export_plan,
-                "gdrive_path": gdrive_path,
-                "gdrive_results_summary": gdrive_results_summary,
-                "gdrive_export_plan": gdrive_export_plan,
-                "modis_status": modis_status,
-            }
-        )
+        email_context = {
+            "status": status,
+            "start_time": start_time.format("YYYY-MM-DD HH:mm:ss (dddd)"),
+            "runtime": runtime,
+            "export_summary": export_summary,
+            "general_plan": general_plan,
+            "general_exceptions": general_exceptions,
+            "export_to_gee": export_to_gee,
+            "gee_path": gee_path,
+            "gee_export_results": gee_export_results,
+            "export_to_gdrive": export_to_gdrive,
+            "gdrive_path": gdrive_path,
+            "gdrive_export_results": gdrive_export_results,
+            "modis": modis_status,
+        }
+        txt_template = template_env.get_template(REPORT_TXT_EMAIL_TEMPLATE)
+        txt_message = txt_template.render(email_context)
+        html_template = template_env.get_template(REPORT_HTML_EMAIL_TEMPLATE)
+        html_message = html_template.render(email_context)
     except Exception as e:
         print(str(e))
         logger.error(f"Error reading or rendering email template: {str(e)}")
 
     subject = f"Snow IPA Export Report: {status}"
-    email_service.send_email(
-        subject=subject, body=message, from_address=from_address, to_address=to_address
+    email_service.send_html_email(
+        subject=subject,
+        txt_message=txt_message,
+        html_message=html_message,
+        from_address=from_address,
+        to_address=to_address,
     )
 
-    return message
+    return None

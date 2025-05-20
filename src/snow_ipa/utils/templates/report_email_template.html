@@ -1,0 +1,93 @@
+
+{% extends "base_email_template.html" %}
+{% block content %}
+<div id="summary-box" class ="section-box">
+    <div id="summary-title" style="background-color: #333333;">
+        <h3 style="color: #FFFFFF;">Summary</h3>
+    </div>
+    <div id="summary-content" class='section-content'>
+        <table id="summary-tbl">
+            {% for s in export_summary %}
+            <tr>
+                <td class="tbl-cell summary-tbl-label">{{ s.status }}</td>
+                <td class="tbl-cell summary-tbl-data">{{ s.count }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+<div id="plan-box", class="section-box">
+    <div id="plan-title" class="section-title">
+        <h3>Export Plan</h3>
+    </div>
+    <div id="plan-content" class="export-plan section-content">
+        <p><b>Images to export:</b></p>
+        <ul>
+            {% for image in general_plan %}
+            <li>{{ image }}</li>
+            {% endfor %}
+        </ul>
+        <p><b>Images excluded:</b></p>
+        <ul>
+            {% for image in excluded_plan %}
+            <li>{{ image }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+<div id="gee-box", class="section-box">
+    <div id="gee-title" class="section-title">
+        <h3>GEE {% if not export_to_gee %} - Disabled {% endif %}</h3>
+    </div>
+    {% if export_to_gee %}
+    <div id="gee-results" class="export-results section-content">
+        <p>Target: {{ gee_path }}</p>
+        <ul>
+            {% for image in gee_export_results %}
+            <li>{{ image }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+<div id="gdrive-box" class="section-box">
+    <div id="gdrive-title" class="section-title">
+        <h3>Google Drive {% if not export_to_gdrive %} - Disabled {% endif %}</h3>
+    </div>
+    {% if export_to_gdrive %}
+    <div id="gdrive-results" class="export-results section-content">
+        <p>Target: {{ gdrive_path }}</p>
+        <ul>
+            {% for image in gdrive_export_results %}
+            <li>{{ image }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+<div id="modis-box" class="section-box">
+    <div id="modis-title" class="section-title">
+        <h3>MODIS Status</h3>
+    </div>
+    <div id="modis-content" class="section-content">
+        <table>
+            <tr>
+                <td class="tbl-cell modis-tbl-label">Collection:</td>
+                <td class="tbl-cell modis-tbl-data">{{ modis.collection }}</td>
+            </tr>
+            <tr>
+                <td class="tbl-cell modis-tbl-label">Total images:</td>
+                <td class="tbl-cell modis-tbl-data">{{ modis.total_images }}</td>
+            </tr>
+            <tr>
+                <td class="tbl-cell modis-tbl-label">Last image:</td>
+                <td class="tbl-cell modis-tbl-data">{{ modis.last_image }}</td>
+            </tr>
+            <tr>
+                <td class="tbl-cell modis-tbl-label">Last complete month:</td>
+                <td class="tbl-cell modis-tbl-data">{{ modis.last_complete_month }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+{% endblock %}

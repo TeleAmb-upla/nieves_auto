@@ -1,0 +1,14 @@
+{% extends "base_email_template.html" %}
+{% block content %}
+<div id="error-section" class="section-box">
+    <p>The automated execution failed with the following error:</p>
+    <div id="error-content" class="section-content" style="background-color: lightsteelblue;">
+        <p>
+        {{ error_message }}
+        </p>
+    </div>
+    <br>
+    <p>The error might be temporary if upstream systems like Google Earth Engine are unavailable or due to incorrect configuration issue. 
+    If the error persists, check the logs for more details, verify the configuration and restart the process.</p>
+</div>
+{% endblock content %}
