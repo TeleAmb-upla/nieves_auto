@@ -9,7 +9,7 @@
   <title>Google Earth Engine SCI and CCI Image Processing Automation &mdash; Snow IPA 4.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
-      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+      <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css?v=be8a1c11" />
 
   
       <script src="_static/jquery.js?v=5d32c60e"></script>
@@ -127,7 +127,7 @@
 </div></blockquote>
 <p>When running as a script, the process will run once and exit. To automate the execution of the script at regular intervals, use the Docker container version or configure your own cron job in the host machine.</p>
 <p>example:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>snow_ipa.py<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;&lt;GGE user&gt;&quot;</span><span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;Service account credential file&gt;&quot;</span><span class="w"> </span>-other_arguments...<span class="w"> </span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>src/snow_ipa/main.py<span class="w"> </span>-u<span class="w"> </span><span class="s2">&quot;&lt;GGE user&gt;&quot;</span><span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;Service account credential file&gt;&quot;</span><span class="w"> </span>-other_arguments...<span class="w"> </span>
 </pre></div>
 </div>
 </section>
@@ -135,7 +135,7 @@
 <h2>Using as Docker container<a class="headerlink" href="#using-as-docker-container" title="Link to this heading"></a></h2>
 <p>A Dockerfile and its respective image are also provided as an alternative to run the script as a one-time run or automatically at regular intervals like every day at 3:00 am (local time zone of the server).</p>
 <p>The docker container can be configured through environment variables to provide the necessary parameters.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-name<span class="w"> </span>nieve<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_USER</span><span class="o">=</span>user@project.iam.gserviceaccount.com<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_SERVICE_CREDENTIALS_FILE</span><span class="o">=</span>/credentials.json<span class="w"> </span>-v<span class="w"> </span>/path/to/credentials.json:/credentials.json<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_REGIONS_ASSET_PATH</span><span class="o">=</span><span class="s1">&#39;path/to/featurecollection&#39;</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_EXPORT_TO</span><span class="o">=</span>toAsset<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_GEE_ASSETS_PATH</span><span class="o">=</span><span class="s1">&#39;path/to/save/assets&#39;</span><span class="w"> </span>ericklinares/gee-nieve-sequia-auto:latest
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>run<span class="w"> </span>-d<span class="w"> </span>-name<span class="w"> </span>nieve<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_USER</span><span class="o">=</span>user@project.iam.gserviceaccount.com<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_SERVICE_CREDENTIALS_FILE</span><span class="o">=</span>/credentials.json<span class="w"> </span>-v<span class="w"> </span>/path/to/credentials.json:/credentials.json<span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_REGIONS_ASSET_PATH</span><span class="o">=</span><span class="s1">&#39;path/to/featurecollection&#39;</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_EXPORT_TO_GEE</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span>-e<span class="w"> </span><span class="nv">SNOW_GEE_ASSETS_PATH</span><span class="o">=</span><span class="s1">&#39;path/to/save/assets&#39;</span><span class="w"> </span>ericklinares/gee-nieve-sequia-auto:latest
 </pre></div>
 </div>
 <p>See docker-compose.yml for an example of how to deploy using compose files.</p>
@@ -143,23 +143,27 @@
 <section id="script-arguments">
 <h2>Script arguments<a class="headerlink" href="#script-arguments" title="Link to this heading"></a></h2>
 <p>When running manually as a python script. The script accepts the following arguments:</p>
-<p><strong>-u or –user (Required)</strong>: Google service account ‘user’ ID. Use the environment variable ‘SNOW_SERVICE_USER’ for the Docker container.</p>
+<p><strong>-u or –user (Required)</strong>: Google service account ‘user’ ID. Use the environment variable ‘SNOW_USER’ for the Docker container.</p>
 <p><strong>-c or –service-credentials (Required)</strong>: Path to the location of a JSON file with Google service account credentials. Use the environment variable ‘SNOW_SERVICE_CREDENTIALS_FILE’ for the Docker container.</p>
-<p><strong>-e or –export-to (Optional)</strong>: Target system to export images. Valid options [toAsset | toDrive | toAssetAndDrive]. Defaults to “toAsset” if no value is provided. Use the environment variable ‘EXPORT_TO’ for the Docker container.</p>
-<p><strong>-s or –assets-path (Conditional)</strong>: Target path to a GEE Asset folder for saving images. Required if exporting to GEE Assets. Use the environment variable ‘SNOW_ASSET_PATH’ for the Docker container.</p>
-<p><strong>-d or –drive-path (Conditional)</strong>: Target path to a Google Drive folder for saving images. Required if exporting to Google Drive. Use the environment variable ‘SNOW_DRIVE_PATH’ for the Docker container.</p>
+<p><strong>–export-to-gee</strong>: Boolean flag to export images to Google Earth Engine. Defaults to False if not provided
+unless export-to-gdrive is also omitted, in this case it will default to True. Use the environment variable
+‘SNOW_EXPORT_TO_GEE’ for the Docker container.</p>
+<p><strong>–export-to-gdrive</strong>: Boolean flag to export images to Google Drive. Defaults to False. Use the environment variable ‘SNOW_EXPORT_TO_GDRIVE’ for the Docker container.</p>
+<p><strong>-s or –gee-assets-path (Conditional)</strong>: Target path to a GEE Asset folder for saving images. Required if exporting to GEE Assets. Use the environment variable ‘SNOW_GEE_ASSETS_PATH’ for the Docker container.</p>
+<p><strong>-d or –gdrive-assets-path (Conditional)</strong>: Target path to a Google Drive folder for saving images. Required if exporting to Google Drive. Use the environment variable ‘SNOW_GDRIVE_ASSETS_PATH’ for the Docker container.</p>
 <p><strong>-r or –regions-asset-path (Optional)</strong>: GEE asset path for reading geographic regions from FeatureCollection. Defaults to “users/proyectosequiateleamb/Regiones/DPA_regiones_nacional” if not specified. Use the environment variable ‘SNOW_REGIONS_ASSET_PATH’ for the Docker container.</p>
 <p><strong>-m or –months-to-export (Optional)</strong>: String of months to export (example: ‘2022-11-01, 2022-10-01’). If not provided the default is to export the last fully available month in MODIS”. Use the environment variable ‘SNOW_MONTHS_LIST’ for the Docker container.</p>
 <p><strong>-l or –log-level (Optional)</strong>: Logging level [“DEBUG” | “INFO” | “WARNING” | “ERROR”]. The default value is “INFO”. Use the environment variable ‘SNOW_LOG_LEVEL’ for the Docker container.</p>
+<p><strong>–log-file (Optional)</strong>: Alternative path to a file where logs will be saved. Use the environment variable ‘SNOW_LOG_FILE’ for the Docker container.</p>
 <p><strong>–enable-email (Optional)</strong>: Enable email notifications. The default value is False. Use the environment variable ‘SNOW_ENABLE_EMAIL’ for the Docker container.</p>
 <p><strong>–smtp-server (Optional)</strong>: SMTP server for sending email notifications. Use the environment variable ‘SNOW_SMTP_SERVER’ for the Docker container.</p>
 <p><strong>–smtp-port (Optional)</strong>: SMTP server port for sending email notifications. Use the environment variable ‘SNOW_SMTP_PORT’ for the Docker container.</p>
-<p><strong>–smtp-user (Optional)</strong>: Username to log int to SMTP email server. Use the environment variable ‘SNOW_SMTP_USERNAME’ for the Docker container.</p>
+<p><strong>–smtp-user (Optional)</strong>: Username to log int to SMTP email server. Use the environment variable ‘SNOW_SMTP_USER’ for the Docker container.</p>
 <p><strong>–smtp-password (Optional)</strong>: Password to log int to SMTP email server. Use the environment variable ‘SNOW_SMTP_PASSWORD’ for the Docker container.</p>
 <p><strong>–smtp-user-file (Optional)</strong>: Path to a file containing the username to log int to SMTP email server. alternative option to –smtp-user. Overwrites –smtp-user if both are provided. Use the environment variable ‘SNOW_SMTP_USERNAME_FILE’ for the Docker container.</p>
 <p><strong>–smtp-password-file (Optional)</strong>: Path to a file containing the password to log int to SMTP email server. alternative option to –smtp-password. Overwrites –smtp-password if both are provided. Use the environment variable ‘SNOW_SMTP_PASSWORD_FILE’ for the Docker container.</p>
-<p><strong>–from-address (Optional)</strong>: Email address to use as sender. Use the environment variable ‘SNOW_FROM_ADDRESS’ for the Docker container.</p>
-<p><strong>–to-address (Optional)</strong>: Email addresses to use as recipients. Accepts one or more email address separated by ‘,’ or ‘;’. Multiple emails need to be enclosed in single or double quotes. e.g “user&#64;email.com;user2&#64;email.com”. Use the environment variable ‘SNOW_TO_ADDRESS’ for the Docker container.</p>
+<p><strong>–smtp-from-address (Optional)</strong>: Email address to use as sender. Use the environment variable ‘SNOW_SMTP_FROM_ADDRESS’ for the Docker container.</p>
+<p><strong>–smtp-to-address (Optional)</strong>: Email addresses to use as recipients. Accepts one or more email address separated by ‘,’ or ‘;’. Multiple emails need to be enclosed in single or double quotes. e.g “user&#64;email.com;user2&#64;email.com”. Use the environment variable ‘SNOW_SMTP_TO_ADDRESS’ for the Docker container.</p>
 </section>
 <section id="docker-container-automatic-scheduled-execution">
 <h2>Docker container automatic scheduled execution<a class="headerlink" href="#docker-container-automatic-scheduled-execution" title="Link to this heading"></a></h2>
@@ -173,7 +177,8 @@
 <ul class="simple">
 <li><p>SNOW_USER</p></li>
 <li><p>SNOW_SERVICE_CREDENTIALS_FILE</p></li>
-<li><p>SNOW_EXPORT_TO</p></li>
+<li><p>SNOW_EXPORT_TO_GEE</p></li>
+<li><p>SNOW_EXPORT_TO_GDRIVE</p></li>
 <li><p>SNOW_GEE_ASSETS_PATH</p></li>
 <li><p>SNOW_GDRIVE_ASSETS_PATH</p></li>
 <li><p>SNOW_REGIONS_ASSET_PATH</p></li>
@@ -209,6 +214,7 @@
 <li><p>Some environment variables were renamed. Please see latest documentation for current names.</p></li>
 <li><p>Some console arguments were renamed. Please see latest documentation for current names.</p></li>
 <li><p>Users can now specify log file and path.</p></li>
+<li><p>the command line argument –export-to has been replaced with –export-to-gee and –export-to-gdrive explicit options.</p></li>
 </ul>
 </section>
 <section id="version-3-0-0">

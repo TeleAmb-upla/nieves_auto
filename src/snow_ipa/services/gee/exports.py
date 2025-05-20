@@ -193,7 +193,7 @@ class ExportList:
                 If None, all tasks are included.
 
         returns:
-            dict: A dictionary with the count of tasks in each status.
+            dict: A dictionary with the count of tasks in each status {status:count}.
         """
         filter = filter.lower() if filter else None
         filter_target = ["gee", "gdrive"]

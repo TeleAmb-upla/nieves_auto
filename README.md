@@ -34,7 +34,7 @@ When running as a script, the process will run once and exit. To automate the ex
 example:
 
 ```bash
-python snow_ipa.py -u "<GGE user>" -c "Service account credential file>" -other_arguments... 
+python src/snow_ipa/main.py -u "<GGE user>" -c "Service account credential file>" -other_arguments... 
 ```
 
 ## Using as Docker container
@@ -44,7 +44,7 @@ A Dockerfile and its respective image are also provided as an alternative to run
 The docker container can be configured through environment variables to provide the necessary parameters.
 
 ```bash
-docker run -d -name nieve -e SNOW_USER=user@project.iam.gserviceaccount.com -e SNOW_SERVICE_CREDENTIALS_FILE=/credentials.json -v /path/to/credentials.json:/credentials.json -e SNOW_REGIONS_ASSET_PATH='path/to/featurecollection' -e SNOW_EXPORT_TO=toAsset -e SNOW_GEE_ASSETS_PATH='path/to/save/assets' ericklinares/gee-nieve-sequia-auto:latest
+docker run -d -name nieve -e SNOW_USER=user@project.iam.gserviceaccount.com -e SNOW_SERVICE_CREDENTIALS_FILE=/credentials.json -v /path/to/credentials.json:/credentials.json -e SNOW_REGIONS_ASSET_PATH='path/to/featurecollection' -e SNOW_EXPORT_TO_GEE=true -e SNOW_GEE_ASSETS_PATH='path/to/save/assets' ericklinares/gee-nieve-sequia-auto:latest
 ```
 
 See docker-compose.yml for an example of how to deploy using compose files.
@@ -53,15 +53,19 @@ See docker-compose.yml for an example of how to deploy using compose files.
 
 When running manually as a python script. The script accepts the following arguments:
 
-**-u or --user (Required)**: Google service account 'user' ID. Use the environment variable 'SNOW_SERVICE_USER' for the Docker container.
+**-u or --user (Required)**: Google service account 'user' ID. Use the environment variable 'SNOW_USER' for the Docker container.
 
 **-c or --service-credentials (Required)**: Path to the location of a JSON file with Google service account credentials. Use the environment variable 'SNOW_SERVICE_CREDENTIALS_FILE' for the Docker container.
 
-**-e or --export-to (Optional)**: Target system to export images. Valid options [toAsset | toDrive | toAssetAndDrive]. Defaults to "toAsset" if no value is provided. Use the environment variable 'EXPORT_TO' for the Docker container.
+**--export-to-gee**: Boolean flag to export images to Google Earth Engine. Defaults to False if not provided
+unless export-to-gdrive is also omitted, in this case it will default to True. Use the environment variable
+'SNOW_EXPORT_TO_GEE' for the Docker container.
 
-**-s or --assets-path (Conditional)**: Target path to a GEE Asset folder for saving images. Required if exporting to GEE Assets. Use the environment variable 'SNOW_ASSET_PATH' for the Docker container.
+**--export-to-gdrive**: Boolean flag to export images to Google Drive. Defaults to False. Use the environment variable 'SNOW_EXPORT_TO_GDRIVE' for the Docker container.
 
-**-d or --drive-path (Conditional)**: Target path to a Google Drive folder for saving images. Required if exporting to Google Drive. Use the environment variable 'SNOW_DRIVE_PATH' for the Docker container.
+**-s or --gee-assets-path (Conditional)**: Target path to a GEE Asset folder for saving images. Required if exporting to GEE Assets. Use the environment variable 'SNOW_GEE_ASSETS_PATH' for the Docker container.
+
+**-d or --gdrive-assets-path (Conditional)**: Target path to a Google Drive folder for saving images. Required if exporting to Google Drive. Use the environment variable 'SNOW_GDRIVE_ASSETS_PATH' for the Docker container.
 
 **-r or --regions-asset-path (Optional)**: GEE asset path for reading geographic regions from FeatureCollection. Defaults to "users/proyectosequiateleamb/Regiones/DPA_regiones_nacional" if not specified. Use the environment variable 'SNOW_REGIONS_ASSET_PATH' for the Docker container.
 
@@ -69,13 +73,15 @@ When running manually as a python script. The script accepts the following argum
 
 **-l or --log-level (Optional)**: Logging level ["DEBUG" | "INFO" | "WARNING" | "ERROR"]. The default value is "INFO". Use the environment variable 'SNOW_LOG_LEVEL' for the Docker container.
 
+**--log-file (Optional)**: Alternative path to a file where logs will be saved. Use the environment variable 'SNOW_LOG_FILE' for the Docker container.
+
 **--enable-email (Optional)**: Enable email notifications. The default value is False. Use the environment variable 'SNOW_ENABLE_EMAIL' for the Docker container.
 
 **--smtp-server (Optional)**: SMTP server for sending email notifications. Use the environment variable 'SNOW_SMTP_SERVER' for the Docker container.
 
 **--smtp-port (Optional)**: SMTP server port for sending email notifications. Use the environment variable 'SNOW_SMTP_PORT' for the Docker container.
 
-**--smtp-user (Optional)**: Username to log int to SMTP email server. Use the environment variable 'SNOW_SMTP_USERNAME' for the Docker container.
+**--smtp-user (Optional)**: Username to log int to SMTP email server. Use the environment variable 'SNOW_SMTP_USER' for the Docker container.
 
 **--smtp-password (Optional)**: Password to log int to SMTP email server. Use the environment variable 'SNOW_SMTP_PASSWORD' for the Docker container.
 
@@ -83,9 +89,9 @@ When running manually as a python script. The script accepts the following argum
 
 **--smtp-password-file (Optional)**: Path to a file containing the password to log int to SMTP email server. alternative option to --smtp-password. Overwrites --smtp-password if both are provided. Use the environment variable 'SNOW_SMTP_PASSWORD_FILE' for the Docker container.
 
-**--from-address (Optional)**: Email address to use as sender. Use the environment variable 'SNOW_FROM_ADDRESS' for the Docker container.
+**--smtp-from-address (Optional)**: Email address to use as sender. Use the environment variable 'SNOW_SMTP_FROM_ADDRESS' for the Docker container.
 
-**--to-address (Optional)**: Email addresses to use as recipients. Accepts one or more email address separated by ',' or ';'. Multiple emails need to be enclosed in single or double quotes. e.g "user@email.com;user2@email.com". Use the environment variable 'SNOW_TO_ADDRESS' for the Docker container.
+**--smtp-to-address (Optional)**: Email addresses to use as recipients. Accepts one or more email address separated by ',' or ';'. Multiple emails need to be enclosed in single or double quotes. e.g "user@email.com;user2@email.com". Use the environment variable 'SNOW_SMTP_TO_ADDRESS' for the Docker container.
 
 ## Docker container automatic scheduled execution
 
@@ -101,7 +107,8 @@ You can substitute command line arguments with the following environment variabl
 
 - SNOW_USER
 - SNOW_SERVICE_CREDENTIALS_FILE
-- SNOW_EXPORT_TO
+- SNOW_EXPORT_TO_GEE
+- SNOW_EXPORT_TO_GDRIVE
 - SNOW_GEE_ASSETS_PATH
 - SNOW_GDRIVE_ASSETS_PATH
 - SNOW_REGIONS_ASSET_PATH
@@ -136,6 +143,7 @@ For Docker Container only:
 - Some environment variables were renamed. Please see latest documentation for current names.
 - Some console arguments were renamed. Please see latest documentation for current names.
 - Users can now specify log file and path.
+- the command line argument --export-to has been replaced with --export-to-gee and --export-to-gdrive explicit options. 
 
 ### Version 3.0.0
 

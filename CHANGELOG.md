@@ -15,6 +15,10 @@ This version introduces significant refactoring to the code and updates dependan
 - Primary script was renamed from snow_ipa.snow_ipa.py to snow_ipa.main.py
 - Some environment variables were renamed. Please see latest documentation for current names
 - Some console arguments were renamed. Please see latest documentation for current names
+- Command line argument --export-to has been removed and replaced with two new arguments:
+  - --export-to-gee: Explicitly require export to Google Earth Engine
+  - --export-to-gdrive: Explicitly require export to Google Drive
+  If none of these options is provided the script will default to exporting to Google Earth Engine.
 
 ### Build System
 
