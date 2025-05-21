@@ -73,6 +73,7 @@ testpaths = ["tests"]
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
+build = false
 build_command = ""
 build_command_env = []
 # upload_to_pypi = false
