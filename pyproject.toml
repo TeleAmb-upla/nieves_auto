@@ -1,6 +1,6 @@
 [project]
 name = "snow-ipa"
-version = "4.0.0-rc.1"
+version = "4.0.0-rc.2"
 description = "Google Earth Engine snow cover image export automation"
 authors = [
     { "name" = "Erick Linares", "email" = "erick.linares@gmail.com" },
