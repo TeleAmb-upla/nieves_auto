@@ -143,7 +143,7 @@ For Docker Container only:
 - Some environment variables were renamed. Please see latest documentation for current names.
 - Some console arguments were renamed. Please see latest documentation for current names.
 - Users can now specify log file and path.
-- the command line argument --export-to has been replaced with --export-to-gee and --export-to-gdrive explicit options. 
+- the command line argument --export-to has been replaced with --export-to-gee and --export-to-gdrive explicit options.
 
 ### Version 3.0.0
 
