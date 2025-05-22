@@ -1,6 +1,3 @@
-from numpy import False_
-
-
 DEFAULT_LOGGING_CONFIG = {
     "name": "snow_ipa",
     "log_file": "./snow.log",

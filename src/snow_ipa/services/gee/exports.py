@@ -4,8 +4,6 @@ import copy
 import prettytable
 from time import sleep
 
-from pyrsistent import v
-
 
 logger = logging.getLogger(__name__)
 
