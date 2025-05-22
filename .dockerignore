@@ -17,6 +17,7 @@
 **/bin
 **/charts
 **/docker-compose*
+**/docker-bake*
 **/compose*
 **/Dockerfile*
 **/node_modules
@@ -35,6 +36,7 @@ LICENSE
 *.md
 **/deprecated/
 **/docs/
+**/guides/
 **/home_run/
 **/notebooks/
 **/tests/
